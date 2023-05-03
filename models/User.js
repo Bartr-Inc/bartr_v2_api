@@ -1,4 +1,4 @@
-const crypto = require('cryto');
+const crypto = require('crypto-random');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
