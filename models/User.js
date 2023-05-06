@@ -1,4 +1,4 @@
-const crypto = require('crypto-random');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -60,9 +60,12 @@ UserSchema.methods.getResetPasswordToken = function () {
 
   // Hash token and set to resetPasswordToken field
   this.resetPasswordToken = crypto
-    .createHash('')
+    .createHash('sha256')
     .update(resetToken)
     .digest('hex');
+
+  // Set expire
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
 };
