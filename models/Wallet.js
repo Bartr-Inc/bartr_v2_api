@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
 const WalletSchema = new mongoose.Schema({
+  referenceId: {
+    type: String,
+  },
   amount: {
     type: Number,
     default: 0,
@@ -9,14 +12,17 @@ const WalletSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  updatedAt: {
+  transactionTopupDate: {
     type: Date,
-    default: Date.now,
   },
   user: {
     type: mongoose.Schema.ObjectId,
     ref: 'User',
     required: true,
+  },
+  topupStatus: {
+    type: [String],
+    enum: ['Init', 'Success', 'Cancelled'],
   },
 });
 

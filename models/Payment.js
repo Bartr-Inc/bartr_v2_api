@@ -19,16 +19,15 @@ const PaymentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  account: {
+  amount: {
     type: Number,
   },
-  status: {
+  transactionStatus: {
     type: [String],
-    require: true,
-    enum: ['Init', 'Paid', 'Cancelled'],
+    enum: ['Init', 'Success', 'Cancelled'],
     required: true,
   },
-  paidAt: {
+  transactionDate: {
     type: Date,
   },
   createdAt: {
