@@ -31,6 +31,10 @@ const UserSchema = new mongoose.Schema({
     minlength: 6,
     select: false,
   },
+  walletId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Wallet',
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   createdAt: {
