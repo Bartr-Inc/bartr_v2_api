@@ -32,5 +32,29 @@ exports.createWallet = asyncHandler(async (req, res, next) => {
 // @desc    Get all wallets
 // @route   GET /api/v2/wallet/getwallets
 // @route   GET /api/v2/user/:userId/getwallets
+// @access  Private/Admin
+exports.getWallets = asyncHandler(async (req, res, next) => {
+  res.status(200).json(res.advancedResults);
+});
+
+// @desc    Get single wallet
+// @route   Get /api/v2//wallet/:id
 // @access  Private
-exports.getWallets = asyncHandler(async (req, res, next) => {});
+exports.getWallet = asyncHandler(async (req, res, next) => {
+  const wallet = await Wallet.findById(req.params.id).populate({
+    path: 'user',
+    select: 'fullName',
+  });
+
+  if (!wallet) {
+    return next(
+      new ErrorResponse(`No wallet with id of ${req.params.id}`),
+      404
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    walletData: wallet,
+  });
+});

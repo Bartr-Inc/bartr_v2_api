@@ -1,11 +1,22 @@
 const express = require('express');
-const { createWallet, getWallets } = require('../controllers/wallet');
+const {
+  createWallet,
+  getWallets,
+  getWallet,
+} = require('../controllers/wallet');
+const Wallet = require('../models/Wallet');
 
 const router = express.Router();
 
-const { protect } = require('../middleware/auth');
+const advancedResults = require('../middleware/advancedResults');
+const { protect, authorize } = require('../middleware/auth');
 
-router.post('/createwallet', protect, createWallet);
-router.get('/getwallets', protect, getWallets);
+router.use(protect);
+
+router.route('/createwallet').post(createWallet);
+router
+  .route('/getwallets')
+  .get(advancedResults(Wallet), authorize('Admin'), getWallets);
+router.route('/:id').get(getWallet);
 
 module.exports = router;

@@ -10,15 +10,62 @@ const User = require('../models/User');
 exports.register = asyncHandler(async (req, res, next) => {
   const { fullName, phone, email, password } = req.body;
 
+  // Check if user already created an account and OTP sent
+  const userData = await User.findOne({ email }).select('+password');
+
+  // Check if user email already exist in DB
+  if (userData) {
+    return next(new ErrorResponse(`User with email ${email} already exist`));
+  }
+
+  // Create OTP code
+  let otpCode = `${Math.floor(Math.random() * 10)}${Math.floor(
+    Math.random() * 10
+  )}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+
   // Create user
   const user = await User.create({
     fullName,
     phone,
     email,
     password,
+    otpCode: otpCode,
   });
 
-  sendTokenResponse(user, 200, res);
+  const message = `User registered. Verification OTP sent. OTP ${otpCode}`;
+
+  sendTokenResponse(user, 200, res, message);
+});
+
+// @desc    Verify user OTP on register
+// @route   PUT /api/v2/auth/verifyotp
+// @access  Private
+exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
+  const { otp } = req.body;
+
+  const user = await User.findById(req.user.id);
+
+  console.log('OTP from body', otp);
+  console.log('OTP from db', user.otpCode.trim());
+
+  // Check if OTP sent matches OTP saved in DB
+  if (user.otpCode != otp) {
+    return next(new ErrorResponse(`Incorrect OTP`, 401));
+  }
+
+  const userDetail = await User.findByIdAndUpdate(
+    req.user.id,
+    {
+      otpConfirmed: 'Yes',
+      otpCode: null,
+    },
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: `OTP confirmed. Kindly login to continue`,
+  });
 });
 
 // @desc    Login user
@@ -44,6 +91,13 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   if (!isMatch) {
     return next(new ErrorResponse('invalid credentials', 401));
+  }
+
+  // Check if user already verified OTP
+  if (user.otpConfirmed !== 'Yes') {
+    return next(
+      new ErrorResponse('Please confirm OTP for registration before login', 400)
+    );
   }
 
   sendTokenResponse(user, 200, res);
@@ -190,7 +244,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 });
 
 // Get token from model, create cookie and send response
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = (user, statusCode, res, props) => {
   // Create token
   const token = user.getSignedJwtToken();
 
@@ -208,5 +262,6 @@ const sendTokenResponse = (user, statusCode, res) => {
   res.status(statusCode).cookie('token', token, options).json({
     success: true,
     token,
+    message: props,
   });
 };
