@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema({
       /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
       'Please add a valid email',
     ],
-    unique: true,
+    // unique: true,
   },
   role: {
     type: String,
@@ -31,6 +31,22 @@ const UserSchema = new mongoose.Schema({
     minlength: 6,
     select: false,
   },
+  walletId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Wallet',
+  },
+  subscriptionId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Subscription',
+  },
+  otpCode: {
+    type: String,
+    default: null,
+  },
+  otpConfirmed: {
+    type: String,
+    default: 'No',
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   createdAt: {
@@ -38,6 +54,11 @@ const UserSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Cascade delete wallet when a user is deleted
+// UserSchema.pre('remove', async function (next) {
+//   await this.model('Wallet').deleteMany({ user: this._id });
+// });
 
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function (next) {

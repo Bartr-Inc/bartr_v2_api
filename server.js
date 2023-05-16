@@ -25,8 +25,10 @@ app.use(cookieParser());
 
 // Route files
 const auth = require('./routes/auth');
+const users = require('./routes/users');
 const wallet = require('./routes/wallet');
 const payments = require('./routes/payments');
+const subscription = require('./routes/subscriptions');
 
 // Sanitize data
 app.use(mongoSanitize());
@@ -39,8 +41,10 @@ app.use(cors());
 
 // Mount routers
 app.use('/api/v2/auth', auth);
+app.use('/api/v2/users', users);
 app.use('/api/v2/wallet', wallet);
 app.use('/api/v2/payments', payments);
+app.use('/api/v2/subscription', subscription);
 
 app.use(errorHandler);
 
