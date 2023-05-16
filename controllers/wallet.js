@@ -31,7 +31,7 @@ exports.createWallet = asyncHandler(async (req, res, next) => {
 
 // @desc    Get all wallets
 // @route   GET /api/v2/wallet/getwallets
-// @route   GET /api/v2/user/:userId/getwallets
+// @route   GET /api/v2/user/:userId/getwallet
 // @access  Private/Admin
 exports.getWallets = asyncHandler(async (req, res, next) => {
   res.status(200).json(res.advancedResults);

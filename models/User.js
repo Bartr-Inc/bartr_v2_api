@@ -35,6 +35,10 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.ObjectId,
     ref: 'Wallet',
   },
+  subscriptionId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Subscription',
+  },
   otpCode: {
     type: String,
     default: null,
