@@ -6,7 +6,7 @@ const CircleSchema = new mongoose.Schema({
     trim: true,
     required: [true, 'Please add a circle title'],
   },
-  amout: {
+  amount: {
     type: Number,
     required: true,
   },
@@ -24,10 +24,10 @@ const CircleSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  subscription: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Subscription',
-  },
+  // subscription: {
+  //   type: mongoose.Schema.ObjectId,
+  //   ref: 'Subscription',
+  // },
 });
 
 module.exports = mongoose.model('Circle', CircleSchema);
