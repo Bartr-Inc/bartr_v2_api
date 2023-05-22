@@ -29,6 +29,8 @@ const users = require('./routes/users');
 const wallet = require('./routes/wallet');
 const payments = require('./routes/payments');
 const subscription = require('./routes/subscriptions');
+const circle = require('./routes/circles');
+const tranfer = require('./routes/transfers');
 
 // Sanitize data
 app.use(mongoSanitize());
@@ -45,6 +47,8 @@ app.use('/api/v2/users', users);
 app.use('/api/v2/wallet', wallet);
 app.use('/api/v2/payments', payments);
 app.use('/api/v2/subscription', subscription);
+app.use('/api/v2/circle', circle);
+app.use('/api/v2/transfer', tranfer);
 
 app.use(errorHandler);
 
@@ -55,6 +59,8 @@ const server = app.listen(PORT, () => {
     `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
   );
 });
+
+server.timeout = 0;
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
