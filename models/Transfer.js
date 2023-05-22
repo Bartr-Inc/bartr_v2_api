@@ -14,21 +14,58 @@ const TransferSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  accountNumber: {
+  recipientAccountNumber: {
     type: String,
-    required: true,
   },
-  bankCode: {
+  recipientAccountName: {
     type: String,
-    required: true,
+  },
+  recipientBankCode: {
+    type: String,
+  },
+  recipientBankName: {
+    type: String,
   },
   currency: {
     type: String,
-    required: true,
+  },
+  recipientCode: {
+    type: String,
+  },
+  reference: {
+    type: String,
+  },
+  integration: {
+    type: String,
+  },
+  domain: {
+    type: String,
+  },
+  amount: {
+    type: String,
+  },
+  source: {
+    type: String,
+  },
+  reason: {
+    type: String,
+  },
+  transferCode: {
+    type: String,
+  },
+  id: {
+    type: String,
+  },
+  transferStatus: {
+    type: [String],
+    enum: ['Init', 'Success', 'Failed', 'Reversed'],
   },
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
   },
 });
 
