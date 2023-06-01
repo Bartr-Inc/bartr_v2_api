@@ -6,118 +6,250 @@ const asyncHandler = require('../middleware/async');
 const Transfer = require('../models/Transfer');
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
+const Circle = require('../models/Circle');
+
+// @desc    Move money from user circle to user wallet
+// @route   PUT /api/v2/transfer/movemoneytowallet/:circleId
+// @access  Private
+exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
+	const { amount } = req.body;
+
+	const circleId = req.params.circleId;
+	const userId = req.user.id;
+
+	if (circleId === '' || undefined) {
+		return next(new ErrorResponse(`Please enter a Circle Id`, 400));
+	}
+
+	const circle = await Circle.findOne({
+		_id: circleId,
+	});
+
+	const wallet = await Wallet.findOne({
+		user: userId,
+	});
+
+	if (!circle) {
+		return next(
+			new ErrorResponse(`No circle details with id of ${circleId}`),
+			404
+		);
+	}
+
+	if (!wallet) {
+		return next(
+			new ErrorResponse(`No wallet details with id of ${userId}`),
+			404
+		);
+	}
+
+	// Check if amount to be moved to wallet is greater than the circle balance
+	if (amount > circle.amount) {
+		return next(
+			new ErrorResponse(
+				`Amount to be transferred is greater than wallet amount`
+			),
+			401
+		);
+	}
+
+	const circleBalance = circle.amount - amount;
+	const walletBalance = amount + wallet.amount;
+
+	// Move money to wallet and update update circle & wallet amount
+	const walletData = await Wallet.findOneAndUpdate(
+		{
+			user: userId,
+		},
+		{
+			amount: walletBalance,
+		},
+		{
+			new: true,
+			runValidators: true,
+		}
+	);
+
+	const CircleData = await Circle.findOneAndUpdate(
+		{
+			_id: circleId,
+		},
+		{
+			amount: circleBalance,
+		},
+		{
+			new: true,
+			runValidators: true,
+		}
+	);
+
+	res.status(200).json({ walletData, CircleData });
+});
 
 // @desc    Get list of banks
 // @route   GET /api/v2/transfers/getallbanks
 // @access  Private
 exports.getAllBanks = asyncHandler(async (req, res, next) => {
-  const options = {
-    hostname: process.env.PAYMENT_HOST,
-    port: 443,
-    path: '/bank?currency=NGN',
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${process.env.SECRET_KEY}`,
-    },
-  };
+	const options = {
+		hostname: process.env.PAYMENT_HOST,
+		port: 443,
+		path: '/bank?currency=NGN',
+		method: 'GET',
+		headers: {
+			Authorization: `Bearer ${process.env.SECRET_KEY}`,
+		},
+	};
 
-  const getAllBanksReq = https
-    .request(options, (getAllBanksRes) => {
-      let data = '';
+	const getAllBanksReq = https
+		.request(options, (getAllBanksRes) => {
+			let data = '';
 
-      getAllBanksRes.on('data', (chunk) => {
-        data += chunk;
-      });
+			getAllBanksRes.on('data', (chunk) => {
+				data += chunk;
+			});
 
-      getAllBanksRes.on('end', () => {
-        let dataRes = '';
-        dataRes = JSON.parse(data);
-        res.status(200).json(dataRes);
-      });
-    })
-    .on('error', (error) => {
-      res.json(error);
-      return;
-    });
-  getAllBanksReq.end();
+			getAllBanksRes.on('end', () => {
+				let dataRes = '';
+				dataRes = JSON.parse(data);
+				res.status(200).json(dataRes);
+			});
+		})
+		.on('error', (error) => {
+			res.json(error);
+			return;
+		});
+	getAllBanksReq.end();
 });
 
 // @desc    Create a transfer recipient
 // @route   POST /api/v2/transfers/transferrecipient
 // @access  Private
 exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
-  const { accountNumber, bankCode } = req.body;
+	const { accountNumber, bankCode } = req.body;
 
-  const userId = req.user.id;
+	const userId = req.user.id;
 
-  const userDetail = await User.findById({
-    _id: userId,
-  });
+	const userDetail = await User.findById({
+		_id: userId,
+	});
 
-  const userName = userDetail.fullName;
+	const userName = userDetail.fullName;
 
-  const params = JSON.stringify({
-    type: 'nuban',
-    name: userName,
-    account_number: accountNumber,
-    bank_code: bankCode,
-    currency: 'NGN',
-  });
+	const params = JSON.stringify({
+		type: 'nuban',
+		name: userName,
+		account_number: accountNumber,
+		bank_code: bankCode,
+		currency: 'NGN',
+	});
 
-  const options = {
-    hostname: process.env.PAYMENT_HOST,
-    port: 443,
-    path: '/transferrecipient',
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.SECRET_KEY}`,
-      'Content-Type': 'application/json',
-    },
-  };
+	const options = {
+		hostname: process.env.PAYMENT_HOST,
+		port: 443,
+		path: '/transferrecipient',
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${process.env.SECRET_KEY}`,
+			'Content-Type': 'application/json',
+		},
+	};
 
-  const transferRecipientReq = https
-    .request(options, (transferRecipientRes) => {
-      let data = '';
+	const transferRecipientReq = https
+		.request(options, (transferRecipientRes) => {
+			let data = '';
 
-      transferRecipientRes.on('data', (chunk) => {
-        data += chunk;
-      });
+			transferRecipientRes.on('data', (chunk) => {
+				data += chunk;
+			});
 
-      transferRecipientRes.on('end', async () => {
-        let dataRes = '';
-        dataRes = JSON.parse(data);
-        // res.status(200).json(dataRes);
+			transferRecipientRes.on('end', async () => {
+				let dataRes = '';
+				dataRes = JSON.parse(data);
+				// res.status(200).json(dataRes);
 
-        // Check if recipient_code already exist in db and update, else create a new one
-        const transferDetails = await Transfer.findOne({
-          recipientCode: dataRes.data.recipient_code,
-        });
+				// Check if recipient_code already exist in db and update, else create a new one
+				const transferDetails = await Transfer.findOne({
+					recipientCode: dataRes.data.recipient_code,
+				});
 
-        if (!transferDetails) {
-          let createTransferDetails = await Transfer.create({
-            user: userId,
-            type: 'nuban',
-            name: userName,
-            recipientAccountNumber: dataRes.data.details.account_number,
-            recipientAccountName: dataRes.data.details.account_name,
-            recipientBankCode: dataRes.data.details.bank_code,
-            recipientBankName: dataRes.data.details.bank_name,
-            currency: dataRes.data.currency,
-            recipientCode: dataRes.data.recipient_code,
-          });
+				if (!transferDetails) {
+					let createTransferDetails = await Transfer.create({
+						user: userId,
+						type: 'nuban',
+						name: userName,
+						recipientAccountNumber: dataRes.data.details.account_number,
+						recipientAccountName: dataRes.data.details.account_name,
+						recipientBankCode: dataRes.data.details.bank_code,
+						recipientBankName: dataRes.data.details.bank_name,
+						currency: dataRes.data.currency,
+						recipientCode: dataRes.data.recipient_code,
+					});
 
-          console.log(createTransferDetails);
-          res.status(200).json(dataRes);
-        } else {
-          res.status(200).json(dataRes);
-        }
-      });
-    })
-    .on('error', (error) => {
-      res.json(error);
-      return;
-    });
+					console.log(createTransferDetails);
+					res.status(200).json(dataRes);
+				} else {
+					res.status(200).json(dataRes);
+				}
+			});
+		})
+		.on('error', (error) => {
+			res.json(error);
+			return;
+		});
 
-  transferRecipientReq.write(params);
-  transferRecipientReq.end();
+	transferRecipientReq.write(params);
+	transferRecipientReq.end();
+});
+
+//  @desc    Initiate a transfer
+//  @route   POST /api/v2/transfers/initiatetransfer/:recipientCode
+// @access  Private
+exports.initiateTransfer = asyncHandler(async (req, res, next) => {
+	const recipientCode = req.params.recipientCode;
+	const userId = req.user.id;
+
+	const referenceId =
+		Math.random().toString(36).substring(2, 15) +
+		Math.random().toString(36).substring(2, 15);
+
+	// Check if the amount in the wallet/circle is equal to the amount to be transfered
+	const transferData = await Transfer.findOne({
+		recipientCode,
+	});
+
+	const walletData = await Wallet.findOne({
+		user: userId,
+	});
+
+	if (!transferData) {
+		return next(
+			new ErrorResponse(
+				`No transfer details with recipient code of ${recipientCode}`
+			),
+			404
+		);
+	}
+
+	if (!walletData) {
+		return next(
+			new ErrorResponse(
+				`No wallet details with user id of ${req.params.recipientCode}`
+			),
+			404
+		);
+	}
+
+	if (transferData.amount > walletData.amount) {
+		return next(
+			new ErrorResponse(
+				`Amount to be transferred is greater than wallet amount`,
+				401
+			)
+		);
+	}
+
+	// Make transfer from circle and wallet
+
+	// Update the circle amount with the updated amount balance
+	// Update the transfer db
 });
