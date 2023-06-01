@@ -17,7 +17,7 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 	const circleId = req.params.circleId;
 	const userId = req.user.id;
 
-	if (circleId === '' || undefined) {
+	if (circleId == '' || undefined) {
 		return next(new ErrorResponse(`Please enter a Circle Id`, 400));
 	}
 
@@ -122,12 +122,13 @@ exports.getAllBanks = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Create a transfer recipient
-// @route   POST /api/v2/transfers/transferrecipient
+// @route   POST /api/v2/transfers/transferrecipient/:circleId
 // @access  Private
 exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 	const { accountNumber, bankCode } = req.body;
 
 	const userId = req.user.id;
+	const circleId = req.params.circleId;
 
 	const userDetail = await User.findById({
 		_id: userId,
@@ -185,7 +186,15 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 						recipientCode: dataRes.data.recipient_code,
 					});
 
-					console.log(createTransferDetails);
+					let updateCircle = await Circle.findOneAndUpdate(
+						{
+							_id: circleId,
+						},
+						{
+							recipientCode: dataRes.data.recipient_code,
+						}
+					);
+
 					res.status(200).json(dataRes);
 				} else {
 					res.status(200).json(dataRes);
@@ -205,6 +214,7 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 //  @route   POST /api/v2/transfers/initiatetransfer/:recipientCode
 // @access  Private
 exports.initiateTransfer = asyncHandler(async (req, res, next) => {
+	const { amount, reason } = req.body;
 	const recipientCode = req.params.recipientCode;
 	const userId = req.user.id;
 
@@ -220,6 +230,19 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 	const walletData = await Wallet.findOne({
 		user: userId,
 	});
+
+	const circleData = await Circle.findOne({
+		recipientCode,
+	});
+
+	if (!circleData) {
+		return next(
+			new ErrorResponse(
+				`No circle details with recipient code of ${recipientCode}`
+			),
+			404
+		);
+	}
 
 	if (!transferData) {
 		return next(
@@ -239,17 +262,156 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 		);
 	}
 
-	if (transferData.amount > walletData.amount) {
+	if (transferData.amount > circleData.amount) {
 		return next(
 			new ErrorResponse(
-				`Amount to be transferred is greater than wallet amount`,
+				`Amount to be transferred is greater than amount in ${circleData.name} circle`,
 				401
 			)
 		);
 	}
 
 	// Make transfer from circle and wallet
+	const params = JSON.stringify({
+		source: 'balance',
+		amount: amount,
+		reference: referenceId,
+		recipient: transferData.recipientCode,
+		reason: reason,
+	});
+
+	const options = {
+		hostname: process.env.PAYMENT_HOST,
+		port: 443,
+		path: '/transfer',
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${process.env.SECRET_KEY}`,
+			'Content-Type': 'application/json',
+		},
+	};
 
 	// Update the circle amount with the updated amount balance
-	// Update the transfer db
+	const initiateTransferReq = https
+		.request(options, (initiateTransferRes) => {
+			let data = '';
+
+			initiateTransferRes.on('data', (chunk) => {
+				data += chunk;
+			});
+
+			initiateTransferRes.on('end', async () => {
+				let dataRes = '';
+				dataRes = JSON.parse(data);
+
+				// Update the transfer db
+				await Transfer.findOneAndUpdate(
+					{
+						recipientCode: transferData.recipientCode,
+					},
+					{
+						amount: amount,
+						reason: reason,
+						reference: referenceId,
+						transferStatus: 'Init',
+					}
+				);
+
+				// Update the circle db when transfer is successful
+				await Circle.findOneAndUpdate(
+					{
+						recipientCode: transferData.recipientCode,
+					},
+					{
+						amount: circleData.amount - amount,
+					}
+				);
+
+				res.status(200).json(dataRes);
+			});
+		})
+		.on('error', (error) => {
+			res.json(error);
+			return;
+		});
+
+	initiateTransferReq.write(params);
+	initiateTransferReq.end();
+});
+
+//  @desc    Verify transfer
+//  @route   POST /api/v2/transfers/verifytransfer/:recipientCode
+// @access  Private
+exports.verifyTransfer = asyncHandler(async (req, res, next) => {
+	const recipientCode = req.params.recipientCode;
+
+	const transferData = await Transfer.findOne({
+		recipientCode,
+	});
+
+	if (!transferData) {
+		return next(
+			new ErrorResponse(
+				`No transfer details with recipient code of ${recipientCode}`
+			),
+			404
+		);
+	}
+
+	const options = {
+		hostname: process.env.PAYMENT_HOST,
+		port: 443,
+		path: `/transfer/verify/${transferData.reference}`,
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${process.env.SECRET_KEY}`,
+			'Content-Type': 'application/json',
+		},
+	};
+
+	const verifyTransferReq = https
+
+		.request(options, (verifyTransferRes) => {
+			let data = '';
+
+			verifyTransferRes.on('data', (chunk) => {
+				data += chunk;
+			});
+
+			verifyTransferRes.on('end', async () => {
+				let dataRes = '';
+				dataRes = JSON.parse(data);
+
+				if (dataRes['data']['status'] === 'success') {
+					const TransferResData = await Transfer.findOneAndUpdate(
+						{
+							reference: transferData.reference,
+						},
+						{
+							transferStatus: 'Success',
+							updatedAt: dataRes['data']['updatedAt'],
+						}
+					);
+					const CircleResData = await Circle.findOneAndUpdate(
+						{
+							recipientCode: recipientCode,
+						},
+						{
+							recipientCode: null,
+						}
+					);
+
+					res.status(200).json({
+						success: true,
+						dataRes: dataRes,
+						TransferResData: TransferResData,
+						CircleResData: CircleResData, 
+					}) 
+				}
+			});
+		})
+		.on('error', (error) => {
+			res.json(error);
+			return;
+		});
 });
