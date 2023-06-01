@@ -61,3 +61,56 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
     walletRes: walletRes,
   });
 });
+
+// @desc    Delete a circle
+// @route   POST /api/v2/circle/deletecircle/:id
+// @access  Private
+// exports.deleteCircle = asyncHandler(async (req, res, next) => {
+
+//   const circleId = req.params.id
+//   const userId = req.user.id
+
+//   // Transfer any remaining money to wallet
+//   const circleData = await Circle.findOne({
+//     _id: circleId
+//   })
+
+//   const walletData = await Wallet.findOne({
+//     user: userId
+//   })
+
+//   if (!circleData) {
+//     return next(
+//       new ErrorResponse(`No circle data with Id ${circleId}`),
+//       404
+//     );
+//   }
+
+//   if (!walletData) {
+//     return next(
+//       new ErrorResponse(`No wallet data with Id ${userId}`),
+//       404
+//     );
+//   }
+
+//   const refundAmountToWallet = walletData.amount + circleData.amount;
+
+//   if (circleData.amount > 0) {
+//     const walletRes = await Wallet.findOneAndUpdate(
+//       {
+//         user: userId,
+//       },
+//       {
+//         amount: refundAmountToWallet,
+//       },
+//       {
+//         new: true,
+//         runValidators: true,
+//       }
+//     );
+//   }
+
+//   await Circle.findByIdAndDelete(req.params.id);
+
+  
+// })
