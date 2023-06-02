@@ -405,8 +405,8 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 						success: true,
 						dataRes: dataRes,
 						TransferResData: TransferResData,
-						CircleResData: CircleResData, 
-					}) 
+						CircleResData: CircleResData,
+					});
 				}
 			});
 		})
