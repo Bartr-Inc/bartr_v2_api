@@ -8,58 +8,58 @@ const Circle = require('../models/Circle');
 // @route   POST /api/v2/circle/createcircle
 // @access  Private
 exports.createCircle = asyncHandler(async (req, res, next) => {
-  const userId = req.user.id;
-  // Check the user wallet to make sure they have enough funds to add to add their circle
-  const walletBalance = await Wallet.findOne({
-    user: userId,
-  });
+	const userId = req.user.id;
+	// Check the user wallet to make sure they have enough funds to add to add their circle
+	const walletBalance = await Wallet.findOne({
+		user: userId,
+	});
 
-  if (!walletBalance) {
-    return next(
-      new ErrorResponse(`No wallet balance with user Id ${req.user.id}`),
-      404
-    );
-  }
+	if (!walletBalance) {
+		return next(
+			new ErrorResponse(`No wallet balance with user Id ${req.user.id}`),
+			404
+		);
+	}
 
-  const { name, amount, duration } = req.body;
+	const { name, amount, duration } = req.body;
 
-  if (amount > walletBalance.amount) {
-    return next(
-      new ErrorResponse(
-        `Sorry can't create circle. Insufficient funds in your wallet. Please top up your wallet`
-      ),
-      400
-    );
-  }
+	if (amount > walletBalance.amount) {
+		return next(
+			new ErrorResponse(
+				`Sorry can't create circle. Insufficient funds in your wallet. Please top up your wallet`
+			),
+			400
+		);
+	}
 
-  const circle = await Circle.create({
-    name,
-    amount,
-    duration,
-    user: req.user.id,
-  });
+	const circle = await Circle.create({
+		name,
+		amount,
+		duration,
+		user: req.user.id,
+	});
 
-  // Deduct the amount transfered from to circle from wallet and update wallet db.
-  const finalWalletBalance = walletBalance.amount - amount;
+	// Deduct the amount transfered from to circle from wallet and update wallet db as well.
+	const finalWalletBalance = walletBalance.amount - amount;
 
-  const walletRes = await Wallet.findOneAndUpdate(
-    {
-      user: userId,
-    },
-    {
-      amount: finalWalletBalance,
-    },
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+	const walletRes = await Wallet.findOneAndUpdate(
+		{
+			user: userId,
+		},
+		{
+			amount: finalWalletBalance,
+		},
+		{
+			new: true,
+			runValidators: true,
+		}
+	);
 
-  res.status(201).json({
-    success: true,
-    data: circle,
-    walletRes: walletRes,
-  });
+	res.status(201).json({
+		success: true,
+		data: circle,
+		walletRes: walletRes,
+	});
 });
 
 // @desc    Delete a circle
@@ -112,5 +112,4 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 
 //   await Circle.findByIdAndDelete(req.params.id);
 
-  
 // })

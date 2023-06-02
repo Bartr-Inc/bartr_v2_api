@@ -55,16 +55,16 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 6000;
 
 const server = app.listen(PORT, () => {
-  console.log(
-    `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
-  );
+	console.log(
+		`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
+	);
 });
 
 server.timeout = 0;
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`.red);
-  // Close server & exit process
-  // server.close(() => process.exit(1));
+	console.log(`Error: ${err.message}`.red);
+	// Close server & exit process
+	// server.close(() => process.exit(1));
 });
