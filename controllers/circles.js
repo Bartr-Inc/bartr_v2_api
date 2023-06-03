@@ -63,53 +63,50 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Delete a circle
-// @route   POST /api/v2/circle/deletecircle/:id
+// @route   DELETE /api/v2/circle/:circleId
 // @access  Private
-// exports.deleteCircle = asyncHandler(async (req, res, next) => {
+exports.deleteCircle = asyncHandler(async (req, res, next) => {
+	const circleId = req.params.circleId;
+	const userId = req.user.id;
 
-//   const circleId = req.params.id
-//   const userId = req.user.id
+	// Transfer any remaining money to wallet
+	const circleData = await Circle.findOne({
+		_id: circleId,
+	});
 
-//   // Transfer any remaining money to wallet
-//   const circleData = await Circle.findOne({
-//     _id: circleId
-//   })
+	const walletData = await Wallet.findOne({
+		user: userId,
+	});
 
-//   const walletData = await Wallet.findOne({
-//     user: userId
-//   })
+	if (!circleData) {
+		return next(new ErrorResponse(`No circle data with Id ${circleId}`), 404);
+	}
 
-//   if (!circleData) {
-//     return next(
-//       new ErrorResponse(`No circle data with Id ${circleId}`),
-//       404
-//     );
-//   }
+	if (!walletData) {
+		return next(new ErrorResponse(`No wallet data with Id ${userId}`), 404);
+	}
 
-//   if (!walletData) {
-//     return next(
-//       new ErrorResponse(`No wallet data with Id ${userId}`),
-//       404
-//     );
-//   }
+	const refundAmountToWallet = walletData.amount + circleData.amount;
 
-//   const refundAmountToWallet = walletData.amount + circleData.amount;
+	if (circleData.amount > 0) {
+		const walletRes = await Wallet.findOneAndUpdate(
+			{
+				user: userId,
+			},
+			{
+				amount: refundAmountToWallet,
+			},
+			{
+				new: true,
+				runValidators: true,
+			}
+		);
+	}
 
-//   if (circleData.amount > 0) {
-//     const walletRes = await Wallet.findOneAndUpdate(
-//       {
-//         user: userId,
-//       },
-//       {
-//         amount: refundAmountToWallet,
-//       },
-//       {
-//         new: true,
-//         runValidators: true,
-//       }
-//     );
-//   }
+	await Circle.findByIdAndDelete(req.params.id);
 
-//   await Circle.findByIdAndDelete(req.params.id);
-
-// })
+	res.status(200).json({
+		success: true,
+		data: {},
+	});
+});
