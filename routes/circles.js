@@ -1,5 +1,11 @@
 const express = require('express');
-const { createCircle, deleteCircle } = require('../controllers/circles');
+const {
+	createCircle,
+	deleteCircle,
+	getAllUserCircles,
+	getUserCircles,
+} = require('../controllers/circles');
+const Circle = require('../models/Circle');
 
 const router = express.Router();
 
@@ -10,5 +16,11 @@ router.use(protect);
 
 router.route('/createcircle').post(createCircle);
 router.route('/:circleId').delete(deleteCircle);
+router
+	.route('/usercircles')
+	.get(advancedResults(Circle), authorize('Admin'), getAllUserCircles);
+router
+	.route('/usercircles/:id')
+	.get(authorize('Admin', 'User'), getUserCircles);
 
 module.exports = router;

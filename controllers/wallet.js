@@ -7,26 +7,26 @@ const User = require('../models/User');
 // @route   POST /api/v2/wallet/createwallet
 // @access  Private
 exports.createWallet = asyncHandler(async (req, res, next) => {
-  req.body.user = req.user.id;
+	req.body.user = req.user.id;
 
-  const wallet = await Wallet.create(req.body);
+	const wallet = await Wallet.create(req.body);
 
-  const userRes = await User.findOneAndUpdate(
-    { _id: req.user.id },
-    {
-      walletId: wallet._id,
-    },
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+	const userRes = await User.findOneAndUpdate(
+		{ _id: req.user.id },
+		{
+			walletId: wallet._id,
+		},
+		{
+			new: true,
+			runValidators: true,
+		}
+	);
 
-  res.status(201).json({
-    success: true,
-    data: wallet,
-    userRes: userRes,
-  });
+	res.status(201).json({
+		success: true,
+		data: wallet,
+		userRes: userRes,
+	});
 });
 
 // @desc    Get all wallets
@@ -34,27 +34,27 @@ exports.createWallet = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v2/user/:userId/getwallet
 // @access  Private/Admin
 exports.getWallets = asyncHandler(async (req, res, next) => {
-  res.status(200).json(res.advancedResults);
+	res.status(200).json(res.advancedResults);
 });
 
 // @desc    Get single wallet
 // @route   Get /api/v2//wallet/:id
 // @access  Private
 exports.getWallet = asyncHandler(async (req, res, next) => {
-  const wallet = await Wallet.findById(req.params.id).populate({
-    path: 'user',
-    select: 'fullName',
-  });
+	const wallet = await Wallet.findById(req.params.id).populate({
+		path: 'user',
+		select: 'fullName',
+	});
 
-  if (!wallet) {
-    return next(
-      new ErrorResponse(`No wallet with id of ${req.params.id}`),
-      404
-    );
-  }
+	if (!wallet) {
+		return next(
+			new ErrorResponse(`No wallet with id of ${req.params.id}`),
+			404
+		);
+	}
 
-  res.status(200).json({
-    success: true,
-    walletData: wallet,
-  });
+	res.status(200).json({
+		success: true,
+		walletData: wallet,
+	});
 });
