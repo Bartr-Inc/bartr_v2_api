@@ -62,6 +62,36 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 	});
 });
 
+// @desc    Get circles for all user
+// @route   GET /api/v2/circle/usercircles
+// @access  Private/Admin
+exports.getAllUserCircles = asyncHandler(async (req, res, next) => {
+	res.status(200).json(res.advancedResults);
+});
+
+// @desc    Get circles for a particular user
+// @route   GET /api/v2/circle/usercircles/:userId
+// @access  Private
+exports.getUserCircles = async (req, res, next) => {
+	const userId = req.params.id;
+
+	const circleData = await Circle.find({
+		user: userId,
+	});
+
+	if (!circleData) {
+		return next(
+			new ErrorResponse(`No circle data with user Id ${userId}`),
+			404
+		);
+	}
+
+	res.status(200).json({
+		success: true,
+		data: circleData,
+	});
+};
+
 // @desc    Delete a circle
 // @route   DELETE /api/v2/circle/:circleId
 // @access  Private
