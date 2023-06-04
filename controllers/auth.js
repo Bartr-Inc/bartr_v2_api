@@ -32,7 +32,20 @@ exports.register = asyncHandler(async (req, res, next) => {
 		otpCode: otpCode,
 	});
 
-	const message = `User registered. Verification OTP sent. OTP ${otpCode}`;
+	const message = `Hi ${fullName}, Kindly verify your email with the verification OTP code. OTP ${otpCode}`;
+
+	try {
+		await sendEmail({
+			email: email,
+			subject: 'Verify OTP',
+			message,
+		});
+
+		console.log('Verify OTP email sent');
+	} catch (err) {
+		console.log(err);
+		return next(new ErrorResponse('Email could not be sent', 500));
+	}
 
 	sendTokenResponse(user, 200, res, message);
 });
@@ -172,6 +185,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 // @route     POST /api/v2/auth/forgotpassword
 // @access    Public
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
+	const email = req.body.email;
 	const user = await User.findOne({ email: req.body.email });
 
 	if (!user) {
@@ -190,23 +204,23 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
 	const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
 
-	// try {
-	//   await sendEmail({
-	//     email: user.email,
-	//     subject: 'Password reset token',
-	//     message,
-	//   });
+	try {
+		await sendEmail({
+			email: email,
+			subject: 'Password reset token',
+			message,
+		});
 
-	//   res.status(200).json({ success: true, data: 'Email sent' });
-	// } catch (err) {
-	//   console.log(err);
-	//   user.resetPasswordToken = undefined;
-	//   user.resetPasswordExpire = undefined;
+		console.log('Forgot password email sent');
+	} catch (err) {
+		console.log(err);
+		user.resetPasswordToken = undefined;
+		user.resetPasswordExpire = undefined;
 
-	//   await user.save({ validateBeforeSave: false });
+		await user.save({ validateBeforeSave: false });
 
-	//   return next(new ErrorResponse('Email could not be sent', 500));
-	// }
+		return next(new ErrorResponse('Email could not be sent', 500));
+	}
 
 	res.status(200).json({
 		success: true,
