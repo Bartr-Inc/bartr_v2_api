@@ -3,6 +3,7 @@ const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
 const sendEmail = require('../utils/sendEmail');
 const User = require('../models/User');
+const Wallet = require('../models/Wallet');
 
 // @desc    Register user
 // @route   POST /api/v2/auth/register
@@ -27,7 +28,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 	const user = await User.create({
 		fullName,
 		phone,
-		email,
+		email: email.toLowerCase(),
 		password,
 		otpCode: otpCode,
 	});
@@ -54,6 +55,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v2/auth/verifyotp
 // @access  Private
 exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
+	req.body.user = req.user.id;
 	const { otp } = req.body;
 
 	const user = await User.findById(req.user.id);
@@ -66,9 +68,12 @@ exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
 		return next(new ErrorResponse(`Incorrect OTP`, 401));
 	}
 
+	const walletDetail = await Wallet.create(req.body);
+
 	const userDetail = await User.findByIdAndUpdate(
 		req.user.id,
 		{
+			walletId: walletDetail._id,
 			otpConfirmed: 'Yes',
 			otpCode: null,
 		},
@@ -78,6 +83,8 @@ exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
 	res.status(200).json({
 		success: true,
 		message: `OTP confirmed. Kindly login to continue`,
+		userDetail: userDetail,
+		walletDetail: walletDetail,
 	});
 });
 
