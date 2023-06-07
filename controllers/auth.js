@@ -60,9 +60,6 @@ exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
 
 	const user = await User.findById(req.user.id);
 
-	console.log('OTP from body', otp);
-	console.log('OTP from db', user.otpCode.trim());
-
 	// Check if OTP sent matches OTP saved in DB
 	if (user.otpCode != otp) {
 		return next(new ErrorResponse(`Incorrect OTP`, 401));
