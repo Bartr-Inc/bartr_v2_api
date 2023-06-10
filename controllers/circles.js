@@ -57,8 +57,11 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 
 	res.status(201).json({
 		success: true,
-		data: circle,
-		walletRes: walletRes,
+		message: `${name} circle created successfully`,
+		data: {
+			circle,
+			walletRes,
+		},
 	});
 });
 
@@ -88,7 +91,10 @@ exports.getUserCircles = async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		data: circleData,
+		message: 'User fetched successfully',
+		data: {
+			circleData,
+		},
 	});
 };
 
@@ -133,10 +139,11 @@ exports.deleteCircle = asyncHandler(async (req, res, next) => {
 		);
 	}
 
-	await Circle.findByIdAndDelete(req.params.id);
+	await Circle.findByIdAndDelete(circleId);
 
 	res.status(200).json({
 		success: true,
+		message: 'Circle deleted successfully',
 		data: {},
 	});
 });
