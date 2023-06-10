@@ -48,7 +48,47 @@ exports.register = asyncHandler(async (req, res, next) => {
 		return next(new ErrorResponse('Email could not be sent', 500));
 	}
 
-	sendTokenResponse(user, 200, res, message);
+	sendTokenResponse(user, 200, res, 'User registered successfully');
+});
+
+// @desc		Resend OTP
+// @route		POST /api/v2/auth/resendotp
+// @access	Private
+exports.resendOtp = asyncHandler(async (req, res, next) => {
+	const userId = req.user.id;
+
+	const user = await User.findById(userId);
+
+	if (!user) {
+		return next(
+			new ErrorResponse('User with id ${userId} does not exist', 404)
+		);
+	}
+
+	const otpCode = user.otpCode;
+	const fullName = user.fullName;
+	const email = user.email;
+
+	const message = `Hi ${fullName}, Kindly verify your email with the verification OTP code. OTP ${otpCode}`;
+
+	try {
+		await sendEmail({
+			email: email,
+			subject: 'Verify OTP',
+			message,
+		});
+
+		console.log('Verify OTP email sent');
+	} catch (err) {
+		console.log(err);
+		return next(new ErrorResponse('Email could not be sent', 500));
+	}
+
+	res.status(200).json({
+		success: true,
+		message: `OTP sent`,
+		data: {},
+	});
 });
 
 // @desc    Verify user OTP on register
@@ -80,8 +120,10 @@ exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
 	res.status(200).json({
 		success: true,
 		message: `OTP confirmed. Kindly login to continue`,
-		userDetail: userDetail,
-		walletDetail: walletDetail,
+		data: {
+			userDetail: userDetail,
+			walletDetail: walletDetail,
+		},
 	});
 });
 
@@ -131,6 +173,7 @@ exports.logout = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
+		message: 'User logged out successfully',
 		data: {},
 	});
 });
@@ -143,7 +186,8 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		data: user,
+		message: 'Logged in user fetched succesfuly',
+		data: { user },
 	});
 });
 
@@ -164,7 +208,8 @@ exports.updateDetails = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		data: user,
+		message: 'User details updated successfully',
+		data: { user },
 	});
 });
 
@@ -182,7 +227,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 	user.password = req.body.newPassword;
 	await user.save();
 
-	sendTokenResponse(user, 200, res);
+	sendTokenResponse(user, 200, res, 'Password updated succesfully');
 });
 
 // @desc      Forgot password
@@ -228,8 +273,8 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		data: user,
 		message: message,
+		data: {},
 	});
 });
 
@@ -258,7 +303,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 	user.resetPasswordExpire = undefined;
 	await user.save();
 
-	sendTokenResponse(user, 200, res);
+	sendTokenResponse(user, 200, res, 'Password updated successfully');
 });
 
 // Get token from model, create cookie and send response
@@ -279,7 +324,9 @@ const sendTokenResponse = (user, statusCode, res, props) => {
 
 	res.status(statusCode).cookie('token', token, options).json({
 		success: true,
-		token,
 		message: props,
+		data: {
+			token,
+		},
 	});
 };
