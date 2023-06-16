@@ -86,7 +86,7 @@ exports.resendOtp = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		message: `OTP sent`,
+		message: 'OTP sent',
 		data: {},
 	});
 });
@@ -111,7 +111,7 @@ exports.verifyOTPRegisteration = asyncHandler(async (req, res, next) => {
 		req.user.id,
 		{
 			walletId: walletDetail._id,
-			otpConfirmed: 'Yes',
+			otpConfirmed: 'True',
 			otpCode: null,
 		},
 		{ new: true, runValidators: true }
@@ -153,7 +153,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 	}
 
 	// Check if user already verified OTP
-	if (user.otpConfirmed !== 'Yes') {
+	if (user.otpConfirmed !== 'True') {
 		return next(
 			new ErrorResponse('Please confirm OTP for registration before login', 400)
 		);
@@ -241,69 +241,102 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 		return next(new ErrorResponse('There is no user with that email', 404));
 	}
 
-	// Get reset token
-	const resetToken = user.getResetPasswordToken();
+	// Create OTP code
+	let otpCode = `${Math.floor(Math.random() * 10)}${Math.floor(
+		Math.random() * 10
+	)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
 
-	await user.save({ validateBeforeSave: false });
+	await User.findOneAndUpdate(
+		{
+			email: email,
+		},
+		{
+			resetPasswordOtpCode: otpCode,
+			resetPasswordOtpConfirmed: 'False',
+		}
+	);
 
-	// Create reset url
-	const resetUrl = `${req.protocol}://${req.get(
-		'host'
-	)}/api/v2/auth/resetpassword/${resetToken}`;
-
-	const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+	const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please use the OTP code ${otpCode} to reset your password`;
 
 	try {
 		await sendEmail({
 			email: email,
-			subject: 'Password reset token',
+			subject: 'Password reset OTP',
 			message,
 		});
 
 		console.log('Forgot password email sent');
 	} catch (err) {
 		console.log(err);
-		user.resetPasswordToken = undefined;
-		user.resetPasswordExpire = undefined;
-
-		await user.save({ validateBeforeSave: false });
-
 		return next(new ErrorResponse('Email could not be sent', 500));
 	}
 
 	res.status(200).json({
 		success: true,
-		message: message,
+		message: 'Reset password OTP sent',
 		data: {},
 	});
 });
 
-// @desc      Reset password
-// @route     PUT /api/v2/auth/resetpassword/:resettoken
-// @access    Public
-exports.resetPassword = asyncHandler(async (req, res, next) => {
-	// Get hashed token
-	const resetPasswordToken = crypto
-		.createHash('sha256')
-		.update(req.params.resettoken)
-		.digest('hex');
+// @desc    Verify user OTP on reset password
+// @route   PUT /api/v2/auth/verifyresetpasswordotp
+// @access  Public
+exports.verifyOTPResetPassword = asyncHandler(async (req, res, next) => {
+	const otpCode = req.body.otp;
 
 	const user = await User.findOne({
-		resetPasswordToken,
-		resetPasswordExpire: { $gt: Date.now() },
+		resetPasswordOtpCode: otpCode,
 	});
 
+	// Check if OTP sent matches OTP saved in DB
+	if (user.resetPasswordOtpCode != otpCode) {
+		return next(new ErrorResponse(`Incorrect OTP`, 401));
+	}
+
+	userDetail = await User.findOneAndUpdate(
+		{ resetPasswordOtpCode: otpCode },
+		{
+			resetPasswordOtpConfirmed: 'True',
+			resetPasswordOtpCode: null,
+		},
+		{ new: true, runValidators: true }
+	);
+
+	sendTokenResponse(user, 200, res, 'OTP confirmed. Reset password to login');
+});
+
+// @desc      Reset password
+// @route     PUT /api/v2/auth/resetpassword
+// @access    Private
+exports.resetPassword = asyncHandler(async (req, res, next) => {
+	const userId = req.user.id;
+
+	const user = await User.findById(userId);
+
 	if (!user) {
-		return next(new ErrorResponse('Invalid token', 400));
+		return next(new ErrorResponse('No user found', 404));
+	}
+
+	if (user.resetPasswordOtpConfirmed !== 'True') {
+		return next(
+			new ErrorResponse(
+				'Please confirm reset password OTP before resetting you password',
+				400
+			)
+		);
 	}
 
 	// Set new password
 	user.password = req.body.password;
-	user.resetPasswordToken = undefined;
-	user.resetPasswordExpire = undefined;
+	user.resetPasswordOtpCode = null;
+	user.resetPasswordOtpConfirmed = 'Confirmed';
 	await user.save();
 
-	sendTokenResponse(user, 200, res, 'Password updated successfully');
+	res.status(200).json({
+		success: true,
+		message: `Password updated successfully. Kindly login to continue`,
+		data: {},
+	});
 });
 
 // Get token from model, create cookie and send response

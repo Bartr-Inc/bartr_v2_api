@@ -9,6 +9,7 @@ const {
 	updateDetails,
 	forgotPassword,
 	resetPassword,
+	verifyOTPResetPassword,
 	updatePassword,
 } = require('../controllers/auth');
 
@@ -25,6 +26,7 @@ router.get('/me', protect, getMe);
 router.put('/updatedetails', protect, updateDetails);
 router.put('/updatepassword', protect, updatePassword);
 router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:resettoken', resetPassword);
+router.put('/verifyresetpasswordotp', verifyOTPResetPassword);
+router.put('/resetpassword', protect, resetPassword);
 
 module.exports = router;
