@@ -21,7 +21,7 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 		);
 	}
 
-	const { name, amount, duration } = req.body;
+	const { name, amount } = req.body;
 
 	if (amount > walletBalance.amount) {
 		return next(
@@ -35,7 +35,6 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 	const circle = await Circle.create({
 		name,
 		amount,
-		duration,
 		user: req.user.id,
 	});
 

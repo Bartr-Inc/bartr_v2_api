@@ -10,11 +10,6 @@ const CircleSchema = new mongoose.Schema({
 		type: Number,
 		required: true,
 	},
-	duration: {
-		type: [String],
-		required: true,
-		enum: ['1 Week', '2 Weeks', '3 Weeks', '1 Month', '2 Months', '3 Months'],
-	},
 	createdAt: {
 		type: Date,
 		default: Date.now,
