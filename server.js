@@ -30,7 +30,8 @@ const wallet = require('./routes/wallet');
 const payments = require('./routes/payments');
 const subscription = require('./routes/subscriptions');
 const circle = require('./routes/circles');
-const tranfer = require('./routes/transfers');
+const transfer = require('./routes/transfers');
+const transaction = require('./routes/transactions');
 
 // Sanitize data
 app.use(mongoSanitize());
@@ -48,7 +49,8 @@ app.use('/api/v2/wallet', wallet);
 app.use('/api/v2/payments', payments);
 app.use('/api/v2/subscription', subscription);
 app.use('/api/v2/circle', circle);
-app.use('/api/v2/transfer', tranfer);
+app.use('/api/v2/transfer', transfer);
+app.use('/api/v2/transaction', transaction);
 
 app.use(errorHandler);
 
