@@ -27,6 +27,6 @@ router.put('/updatedetails', protect, updateDetails);
 router.put('/updatepassword', protect, updatePassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/verifyresetpasswordotp', verifyOTPResetPassword);
-router.put('/resetpassword', protect, resetPassword);
+router.put('/resetpassword/:otp', resetPassword);
 
 module.exports = router;

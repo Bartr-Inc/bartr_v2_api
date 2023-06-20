@@ -297,34 +297,42 @@ exports.verifyOTPResetPassword = asyncHandler(async (req, res, next) => {
 		{ resetPasswordOtpCode: otpCode },
 		{
 			resetPasswordOtpConfirmed: 'True',
-			resetPasswordOtpCode: null,
 		},
 		{ new: true, runValidators: true }
 	);
 
-	sendTokenResponse(user, 200, res, 'OTP confirmed. Reset password to login');
+	res.status(200).json({
+		success: true,
+		message: 'OTP confirmed. Reset password to login',
+		data: {},
+	});
+	// sendTokenResponse(user, 200, res, 'OTP confirmed. Reset password to login');
 });
 
 // @desc      Reset password
-// @route     PUT /api/v2/auth/resetpassword
-// @access    Private
+// @route     PUT /api/v2/auth/resetpassword/:otp
+// @access    Public
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-	const userId = req.user.id;
+	const otp = req.params.otp;
 
-	const user = await User.findById(userId);
+	const user = await User.findOne({ resetPasswordOtpCode: otp });
 
 	if (!user) {
 		return next(new ErrorResponse('No user found', 404));
 	}
 
-	if (user.resetPasswordOtpConfirmed !== 'True') {
-		return next(
-			new ErrorResponse(
-				'Please confirm reset password OTP before resetting you password',
-				400
-			)
-		);
+	if (user.resetPasswordOtpCode !== otp) {
+		return next(new ErrorResponse('Incorrect OTP', 400));
 	}
+
+	// if (user.resetPasswordOtpConfirmed !== 'True') {
+	// 	return next(
+	// 		new ErrorResponse(
+	// 			'Please confirm reset password OTP before resetting you password',
+	// 			400
+	// 		)
+	// 	);
+	// }
 
 	// Set new password
 	user.password = req.body.password;

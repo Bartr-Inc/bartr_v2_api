@@ -123,8 +123,11 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 
 				res.status(200).json({
 					status: 'success',
-					data: responseData,
-					walletRes: walletRes,
+					message: 'Payment initialized successfully',
+					data: {
+						paymentRes: responseData,
+						walletRes: walletRes,
+					},
 				});
 			} else {
 				res.status(400).json({ status: 'failed', message: data['message'] });
@@ -164,7 +167,10 @@ exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
 	if (walletTopData['transactionStatus'][0] === 'Success') {
 		res.status(200).json({
 			success: true,
-			TransactionResdata: walletTopData,
+			message: 'Payment verified successfully',
+			data: {
+				TransactionResdata: walletTopData,
+			},
 		});
 		return;
 	}
@@ -219,8 +225,11 @@ exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
 
 				res.status(200).json({
 					success: true,
-					TransactionResdata: TransactionResdata,
-					walletResData: walletRes,
+					message: 'Payment verified successfully',
+					data: {
+						TransactionResdata: TransactionResdata,
+						walletResData: walletRes,
+					},
 				});
 			}
 		});

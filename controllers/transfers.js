@@ -83,7 +83,14 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 		}
 	);
 
-	res.status(200).json({ walletData, CircleData });
+	res.status(200).json({
+		success: true,
+		message: `${amount} moved to wallet successfully`,
+		data: {
+			walletData,
+			CircleData,
+		},
+	});
 });
 
 // @desc    Get list of banks
