@@ -2,7 +2,7 @@ const Transaction = require('../models/Transaction');
 const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Get all transactions for a particular user
-// @route   GET /api/v2/transaction/allusertransactions/:userId
+// @route   GET /api/v2/transaction/getusertransactions/:userId
 // @access  Private
 exports.getUserTransactions = async (req, res, next) => {
 	const userId = req.params.id;

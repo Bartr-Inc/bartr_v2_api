@@ -14,7 +14,17 @@ const TransactionSchema = new mongoose.Schema({
 	},
 	transactionType: {
 		type: [String],
-		enum: ['Debit', 'Credit'],
+		enum: ['Debit', 'Credit', 'Moved Money to Wallet'],
+	},
+	status: {
+		type: [String],
+		enum: ['Pending', 'Success', 'Cancelled'],
+	},
+	referenceId: {
+		type: String,
+	},
+	recipientCode: {
+		type: String,
 	},
 	createdAt: {
 		type: Date,

@@ -7,6 +7,7 @@ const Transfer = require('../models/Transfer');
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
 const Circle = require('../models/Circle');
+const Transaction = require('../models/Transaction');
 
 // @desc    Move money from user circle to user wallet
 // @route   PUT /api/v2/transfer/movemoneytowallet/:circleId
@@ -47,7 +48,7 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 	if (amount > circle.amount) {
 		return next(
 			new ErrorResponse(
-				`Amount to be transferred is greater than wallet amount`
+				`Amount to be transferred is greater than ${circle.name} circle amount`
 			),
 			401
 		);
@@ -70,7 +71,7 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 		}
 	);
 
-	const CircleData = await Circle.findOneAndUpdate(
+	const circleData = await Circle.findOneAndUpdate(
 		{
 			_id: circleId,
 		},
@@ -83,12 +84,20 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 		}
 	);
 
+	await Transaction.create({
+		user: userId,
+		amount,
+		description: 'Moved money to wallet',
+		transactionType: 'Moved Money to Wallet',
+		status: 'Success',
+	});
+
 	res.status(200).json({
 		success: true,
 		message: `${amount} moved to wallet successfully`,
 		data: {
 			walletData,
-			CircleData,
+			circleData,
 		},
 	});
 });
@@ -202,9 +211,27 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 						}
 					);
 
-					res.status(200).json(dataRes);
+					// Update transactions db
+					await Transaction.create({
+						user: userId,
+						recipientCode: dataRes.data.recipient_code,
+					});
+
+					res.status(200).json({
+						status: 'success',
+						message: 'Transfer recipient created successfully',
+						data: {
+							dataRes,
+						},
+					});
 				} else {
-					res.status(200).json(dataRes);
+					res.status(200).json({
+						status: 'success',
+						message: 'Transfer recipient created successfully',
+						data: {
+							dataRes,
+						},
+					});
 				}
 			});
 		})
@@ -334,7 +361,27 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 					}
 				);
 
-				res.status(200).json(dataRes);
+				// Update transactions db
+				await Transaction.findOneAndUpdate(
+					{
+						recipientCode: transferData.recipientCode,
+					},
+					{
+						amount,
+						description: reason,
+						transactionType: 'Debit',
+						status: 'Pending',
+						referenceId,
+					}
+				);
+
+				res.status(200).json({
+					status: 'success',
+					message: 'Transfer initiated successfully',
+					data: {
+						dataRes,
+					},
+				});
 			});
 		})
 		.on('error', (error) => {
@@ -399,6 +446,7 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 							updatedAt: dataRes['data']['updatedAt'],
 						}
 					);
+
 					const CircleResData = await Circle.findOneAndUpdate(
 						{
 							recipientCode: recipientCode,
@@ -408,11 +456,23 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 						}
 					);
 
+					await Transaction.findOneAndUpdate(
+						{
+							referenceId: transferData.reference,
+						},
+						{
+							status: 'Success',
+						}
+					);
+
 					res.status(200).json({
-						success: true,
-						dataRes: dataRes,
-						TransferResData: TransferResData,
-						CircleResData: CircleResData,
+						status: 'success',
+						message: 'Transfer successful',
+						data: {
+							dataRes: dataRes,
+							TransferResData: TransferResData,
+							CircleResData: CircleResData,
+						},
 					});
 				}
 			});
