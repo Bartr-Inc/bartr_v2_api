@@ -121,7 +121,7 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 				const TransactionsRes = await Transaction.create({
 					user: req.user.id,
 					amount: netWalletTopup,
-					description: 'Wallet Topup',
+					description: 'Wallet topup',
 					transactionType: 'Credit',
 					status: 'Pending',
 					referenceId,
