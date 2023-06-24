@@ -6,6 +6,7 @@ const asyncHandler = require('../middleware/async');
 const Payment = require('../models/Payment');
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 
 // @desc    Get all customers
 // @route   GET /api/v2/payments/customers
@@ -116,6 +117,16 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 					}
 				);
 
+				// Update transactions db
+				const TransactionsRes = await Transaction.create({
+					user: req.user.id,
+					amount: netWalletTopup,
+					description: 'Wallet Topup',
+					transactionType: 'Credit',
+					status: 'Pending',
+					referenceId,
+				});
+
 				let responseData = {
 					payment_url: data['data']['authorization_url'],
 					reference_id: referenceId,
@@ -127,6 +138,7 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 					data: {
 						paymentRes: responseData,
 						walletRes: walletRes,
+						TransactionsRes: TransactionsRes,
 					},
 				});
 			} else {
@@ -223,12 +235,25 @@ exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
 					}
 				);
 
+				// Update Transaction DB. set status to success
+				const TransactionRes = await Transaction.findOneAndUpdate(
+					{ referenceId: walletTopData['referenceId'] },
+					{
+						status: 'Success',
+					},
+					{
+						new: true,
+						runValidators: true,
+					}
+				);
+
 				res.status(200).json({
 					success: true,
 					message: 'Payment verified successfully',
 					data: {
 						TransactionResdata: TransactionResdata,
 						walletResData: walletRes,
+						TransactionRes: TransactionRes,
 					},
 				});
 			}
