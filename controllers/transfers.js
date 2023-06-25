@@ -76,7 +76,8 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 			_id: circleId,
 		},
 		{
-			amount: circleBalance,
+			// amount: circleBalance,
+			balanceAmount: circleBalance,
 		},
 		{
 			new: true,
@@ -217,21 +218,14 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 						recipientCode: dataRes.data.recipient_code,
 					});
 
-					res.status(200).json({
-						status: 'success',
-						message: 'Transfer recipient created successfully',
-						data: {
-							dataRes,
-						},
-					});
+					// res.status(200).json({
+					// 	status: 'success',
+					// 	message: 'Transfer recipient created successfully',
+					// 	data: dataRes,
+					// });
+					res.status(200).json(dataRes);
 				} else {
-					res.status(200).json({
-						status: 'success',
-						message: 'Transfer recipient created successfully',
-						data: {
-							dataRes,
-						},
-					});
+					res.status(200).json(dataRes);
 				}
 			});
 		})
@@ -357,7 +351,8 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 						recipientCode: transferData.recipientCode,
 					},
 					{
-						amount: circleData.amount - amount,
+						// amount: circleData.amount - amount,
+						balanceAmount: circleData.amount - amount,
 					}
 				);
 
@@ -375,13 +370,15 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 					}
 				);
 
-				res.status(200).json({
-					status: 'success',
-					message: 'Transfer initiated successfully',
-					data: {
-						dataRes,
-					},
-				});
+				res.status(200).json(dataRes);
+
+				// res.status(200).json({
+				// 	status: 'success',
+				// 	message: 'Transfer initiated successfully',
+				// 	data: {
+				// 		dataRes,
+				// 	},
+				// });
 			});
 		})
 		.on('error', (error) => {
@@ -465,15 +462,17 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 						}
 					);
 
-					res.status(200).json({
-						status: 'success',
-						message: 'Transfer successful',
-						data: {
-							dataRes: dataRes,
-							TransferResData: TransferResData,
-							CircleResData: CircleResData,
-						},
-					});
+					res.status(200).json(dataRes);
+
+					// res.status(200).json({
+					// 	status: 'success',
+					// 	message: 'Transfer successful',
+					// 	data: {
+					// 		dataRes: dataRes,
+					// 		TransferResData: TransferResData,
+					// 		CircleResData: CircleResData,
+					// 	},
+					// });
 				}
 			});
 		})

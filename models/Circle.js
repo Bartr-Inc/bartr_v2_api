@@ -10,6 +10,9 @@ const CircleSchema = new mongoose.Schema({
 		type: Number,
 		required: true,
 	},
+	balanceAmount: {
+		type: Number,
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now,
