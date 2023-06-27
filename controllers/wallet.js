@@ -55,6 +55,7 @@ exports.getWallet = asyncHandler(async (req, res, next) => {
 
 	res.status(200).json({
 		success: true,
-		walletData: wallet,
+		message: 'User wallet fetched successfully',
+		data: wallet,
 	});
 });
