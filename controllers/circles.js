@@ -3,6 +3,7 @@ const asyncHandler = require('../middleware/async');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
 const Circle = require('../models/Circle');
+const Transaction = require('../models/Transaction');
 
 // @desc    Create a circle
 // @route   POST /api/v2/circle/createcircle
@@ -53,6 +54,16 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 			runValidators: true,
 		}
 	);
+
+	// Update transactions db
+	await Transaction.create({
+		user: userId,
+		circle: circle.id,
+		amount,
+		transactionType: 'Credit',
+		status: 'Success',
+		transactionMethod: 'Circle',
+	});
 
 	res.status(201).json({
 		success: true,
