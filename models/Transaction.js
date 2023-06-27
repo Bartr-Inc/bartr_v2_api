@@ -6,6 +6,11 @@ const TransactionSchema = new mongoose.Schema({
 		ref: 'User',
 		required: true,
 	},
+	circle: {
+		type: mongoose.Schema.ObjectId,
+		ref: 'Circle',
+		required: true,
+	},
 	amount: {
 		type: Number,
 	},
@@ -15,6 +20,10 @@ const TransactionSchema = new mongoose.Schema({
 	transactionType: {
 		type: [String],
 		enum: ['Debit', 'Credit', 'Moved Money to Wallet'],
+	},
+	transactionMethod: {
+		type: [String],
+		enum: ['Circle', 'Others'],
 	},
 	status: {
 		type: [String],

@@ -346,13 +346,17 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 				);
 
 				// Update the circle db when transfer is successful
-				await Circle.findOneAndUpdate(
+				const circleRes = await Circle.findOneAndUpdate(
 					{
 						recipientCode: transferData.recipientCode,
 					},
 					{
 						// amount: circleData.amount - amount,
 						balanceAmount: circleData.amount - amount,
+					},
+					{
+						new: true,
+						runValidators: true,
 					}
 				);
 
@@ -362,10 +366,13 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 						recipientCode: transferData.recipientCode,
 					},
 					{
+						user: userId,
+						circle: circleRes.id,
 						amount,
 						description: reason,
 						transactionType: 'Debit',
 						status: 'Pending',
+						transactionMethod: 'Circle',
 						referenceId,
 					}
 				);
