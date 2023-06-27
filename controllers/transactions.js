@@ -16,7 +16,7 @@ exports.getUserTransactions = async (req, res, next) => {
 
 	const skip = (page - 1) * 10;
 
-	let transactionData = await Transaction.find({
+	const transactionData = await Transaction.find({
 		user: userId,
 	})
 		.sort({ [sort]: asc })
@@ -38,9 +38,7 @@ exports.getUserTransactions = async (req, res, next) => {
 			page: page,
 			limit: limit,
 		},
-		data: {
-			transactionData,
-		},
+		data: transactionData,
 	});
 };
 
@@ -58,7 +56,7 @@ exports.getCircleTransactions = async (req, res, next) => {
 
 	const skip = (page - 1) * 10;
 
-	let transactionData = await Transaction.find({
+	const transactionData = await Transaction.find({
 		circle: circleId,
 	})
 		.sort({ [sort]: asc })
@@ -80,8 +78,6 @@ exports.getCircleTransactions = async (req, res, next) => {
 			page: page,
 			limit: limit,
 		},
-		data: {
-			transactionData,
-		},
+		data: transactionData,
 	});
 };
