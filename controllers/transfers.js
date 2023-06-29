@@ -312,7 +312,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 	// Make transfer from circle and wallet
 	const params = JSON.stringify({
 		source: 'balance',
-		amount: amount,
+		amount: amount * 100,
 		reference: referenceId,
 		recipient: transferData.recipientCode,
 		reason: reason,
