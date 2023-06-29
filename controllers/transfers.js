@@ -226,6 +226,15 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 					// });
 					res.status(200).json(dataRes);
 				} else {
+					await Circle.findOneAndUpdate(
+						{
+							_id: circleId,
+						},
+						{
+							recipientCode: dataRes.data.recipient_code,
+						}
+					);
+
 					res.status(200).json(dataRes);
 				}
 			});
