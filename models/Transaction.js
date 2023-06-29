@@ -9,7 +9,6 @@ const TransactionSchema = new mongoose.Schema({
 	circle: {
 		type: mongoose.Schema.ObjectId,
 		ref: 'Circle',
-		required: true,
 	},
 	amount: {
 		type: Number,

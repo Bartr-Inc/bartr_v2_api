@@ -60,6 +60,7 @@ exports.createCircle = asyncHandler(async (req, res, next) => {
 		user: userId,
 		circle: circle.id,
 		amount,
+		description: 'Circle Topup',
 		transactionType: 'Credit',
 		status: 'Success',
 		transactionMethod: 'Circle',
