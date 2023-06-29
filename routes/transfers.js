@@ -5,6 +5,7 @@ const {
 	moveMoneyFromCircleToWallet,
 	initiateTransfer,
 	verifyTransfer,
+	transferWebhook,
 } = require('../controllers/transfers');
 
 const router = express.Router();
@@ -26,5 +27,8 @@ router
 router
 	.route('/verifytransfer/:recipientCode')
 	.post(protect, authorize('User', 'Admin'), verifyTransfer);
+router
+	.route('/transferwebhook')
+	.post(protect, authorize('User', 'Admin'), transferWebhook);
 
 module.exports = router;
