@@ -1,4 +1,5 @@
 const https = require('https');
+const crypto = require('crypto');
 const paystack = require('paystack')(process.env.SECRET_KEY);
 
 const ErrorResponse = require('../utils/errorResponse');
@@ -487,4 +488,25 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 			res.json(error);
 			return;
 		});
+});
+
+// @desc    Webhook to verify transfer
+// @route   GET /api/v2/transfers/webhook
+// @access  Private
+exports.transferWebhook = asyncHandler(async (req, res, next) => {
+	//validate event
+	const hash = crypto
+		.createHmac('sha512', process.env.SECRET_KEY)
+		.update(JSON.stringify(req.body))
+		.digest('hex');
+	if (hash == req.headers['x-paystack-signature']) {
+		// Retrieve the request's body
+		const event = req.body;
+		console.log(event);
+		// Do something with event
+	}
+
+	res.status(200).json({
+		success: true,
+	});
 });
