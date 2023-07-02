@@ -58,9 +58,7 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 		tx_ref: ref,
 		amount: amount,
 		currency: 'NGN',
-		redirect_url: `${req.protocol}:${req.get(
-			'host'
-		)}/api/v2/payments/verify/${referenceId}`,
+		redirect_url: `${req.protocol}:${req.get('host')}/api/v2/payments/verify`,
 		payment_options: 'card,mobilemoney,ussd,banktransfer',
 		customer: {
 			email: req.user.email,
@@ -86,7 +84,7 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 		data: payload,
 	};
 
-	axios(config)
+	const resData = axios(config)
 		.then(function (response) {
 			return res.status(200).json({
 				success: true,
@@ -101,7 +99,23 @@ exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 // @desc    Verify payment
 // @route   GET /api/v2/payments/verify/:referenceId
 // @access  Private/User
-exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {});
+exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
+	if (req.query.status === 'successful') {
+		// const transactionDetails = await Transaction.find({ref: req.query.tx_ref});
+		// const response = await flw.Transaction.verify({id: req.query.transaction_id});
+		// if (
+		// 		response.data.status === "successful"
+		// 		&& response.data.amount === transactionDetails.amount
+		// 		&& response.data.currency === "NGN") {
+		// 		// Success! Confirm the customer's payment
+		// } else {
+		// 		// Inform the customer their payment was unsuccessful
+		// }
+		console.log('Successful');
+		console.log('ref', req.query.tx_ref);
+		console.log('transaction ID', req.query.transaction_id);
+	}
+});
 
 // exports.initializeWalletTopupPayment = asyncHandler(async (req, res, next) => {
 // 	let walletId = req.params.walletId;
@@ -240,101 +254,101 @@ exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {});
 // @desc    Verify payment
 // @route   GET /api/v2/payments/verify/:referenceId
 // @access  Private/User
-exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
-	let walletTopData = await Payment.findOne({
-		referenceId: req.params.referenceId,
-	});
+// exports.verifyWalletTopup = asyncHandler(async (req, res, next) => {
+// 	let walletTopData = await Payment.findOne({
+// 		referenceId: req.params.referenceId,
+// 	});
 
-	if (!walletTopData) {
-		return next(
-			new ErrorResponse(
-				`No wallet topup with reference Id of ${req.params.referenceId}`
-			),
-			404
-		);
-	}
+// 	if (!walletTopData) {
+// 		return next(
+// 			new ErrorResponse(
+// 				`No wallet topup with reference Id of ${req.params.referenceId}`
+// 			),
+// 			404
+// 		);
+// 	}
 
-	if (walletTopData['transactionStatus'][0] === 'Success') {
-		res.status(200).json({
-			success: true,
-			message: 'Payment verified successfully',
-			data: {
-				TransactionResdata: walletTopData,
-			},
-		});
-		return;
-	}
+// 	if (walletTopData['transactionStatus'][0] === 'Success') {
+// 		res.status(200).json({
+// 			success: true,
+// 			message: 'Payment verified successfully',
+// 			data: {
+// 				TransactionResdata: walletTopData,
+// 			},
+// 		});
+// 		return;
+// 	}
 
-	// Verify transaction
-	let options = {
-		hostname: process.env.PAYMENT_HOST,
-		path: `/transaction/verify/${walletTopData['referenceId']}`,
-		headers: {
-			Authorization: `Bearer ${process.env.SECRET_KEY}`,
-			'Content-Type': 'application/json',
-		},
-	};
+// 	// Verify transaction
+// 	let options = {
+// 		hostname: process.env.PAYMENT_HOST,
+// 		path: `/transaction/verify/${walletTopData['referenceId']}`,
+// 		headers: {
+// 			Authorization: `Bearer ${process.env.SECRET_KEY}`,
+// 			'Content-Type': 'application/json',
+// 		},
+// 	};
 
-	let data = '';
+// 	let data = '';
 
-	let topupVar = https.get(options, (topupRes) => {
-		topupRes.on('data', (chunk) => {
-			data += chunk;
-		});
-		topupRes.on('end', async () => {
-			verifiedData = JSON.parse(data);
+// 	let topupVar = https.get(options, (topupRes) => {
+// 		topupRes.on('data', (chunk) => {
+// 			data += chunk;
+// 		});
+// 		topupRes.on('end', async () => {
+// 			verifiedData = JSON.parse(data);
 
-			if (
-				verifiedData['status'] &&
-				verifiedData['data']['status'] === 'success'
-			) {
-				const TransactionResdata = await Payment.findOneAndUpdate(
-					{ referenceId: walletTopData['referenceId'] },
-					{
-						transactionStatus: 'Success',
-						transactionDate: verifiedData['data']['paid_at'],
-					},
-					{
-						new: true,
-						runValidators: true,
-					}
-				);
+// 			if (
+// 				verifiedData['status'] &&
+// 				verifiedData['data']['status'] === 'success'
+// 			) {
+// 				const TransactionResdata = await Payment.findOneAndUpdate(
+// 					{ referenceId: walletTopData['referenceId'] },
+// 					{
+// 						transactionStatus: 'Success',
+// 						transactionDate: verifiedData['data']['paid_at'],
+// 					},
+// 					{
+// 						new: true,
+// 						runValidators: true,
+// 					}
+// 				);
 
-				// Update Wallet with topup amount. set status to success
-				const walletRes = await Wallet.findOneAndUpdate(
-					{ referenceId: walletTopData['referenceId'] },
-					{
-						topupStatus: 'Success',
-						transactionTopupDate: verifiedData['data']['paid_at'],
-					},
-					{
-						new: true,
-						runValidators: true,
-					}
-				);
+// 				// Update Wallet with topup amount. set status to success
+// 				const walletRes = await Wallet.findOneAndUpdate(
+// 					{ referenceId: walletTopData['referenceId'] },
+// 					{
+// 						topupStatus: 'Success',
+// 						transactionTopupDate: verifiedData['data']['paid_at'],
+// 					},
+// 					{
+// 						new: true,
+// 						runValidators: true,
+// 					}
+// 				);
 
-				// Update Transaction DB. set status to success
-				const TransactionRes = await Transaction.findOneAndUpdate(
-					{ referenceId: walletTopData['referenceId'] },
-					{
-						status: 'Success',
-					},
-					{
-						new: true,
-						runValidators: true,
-					}
-				);
+// 				// Update Transaction DB. set status to success
+// 				const TransactionRes = await Transaction.findOneAndUpdate(
+// 					{ referenceId: walletTopData['referenceId'] },
+// 					{
+// 						status: 'Success',
+// 					},
+// 					{
+// 						new: true,
+// 						runValidators: true,
+// 					}
+// 				);
 
-				res.status(200).json({
-					success: true,
-					message: 'Payment verified successfully',
-					data: {
-						TransactionResdata: TransactionResdata,
-						walletResData: walletRes,
-						TransactionRes: TransactionRes,
-					},
-				});
-			}
-		});
-	});
-});
+// 				res.status(200).json({
+// 					success: true,
+// 					message: 'Payment verified successfully',
+// 					data: {
+// 						TransactionResdata: TransactionResdata,
+// 						walletResData: walletRes,
+// 						TransactionRes: TransactionRes,
+// 					},
+// 				});
+// 			}
+// 		});
+// 	});
+// });
