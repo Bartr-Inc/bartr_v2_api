@@ -9,16 +9,18 @@ const asyncHandler = require('../middleware/async');
 exports.getUserTransactions = async (req, res, next) => {
 	const userId = req.params.id;
 
-	let { page, limit, sort, asc } = req.query;
+	let { page, limit, sort, asc, transactionType } = req.query;
 
 	if (!page) page = 1;
 	if (!limit) limit = 10;
+	if (!transactionType) transactionType = 'MovedMoneyToWallet';
 
 	const skip = (page - 1) * 10;
 
 	const transactionData = await Transaction.find({
 		user: userId,
 	})
+		.where(transactionType)
 		.sort({ [sort]: asc })
 		.skip(skip)
 		.limit(limit);
