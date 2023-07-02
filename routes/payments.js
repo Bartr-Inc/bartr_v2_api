@@ -15,7 +15,6 @@ router
 	.route('/initialize/:walletId')
 	.get(protect, authorize('User', 'Admin'), initializeWalletTopupPayment);
 
-// router.route('/verify/:referenceId').get(verifyWalletTopup);
-router.route('/verify').get(verifyWalletTopup);
+router.route('/verify/:referenceId').get(verifyWalletTopup);
 
 module.exports = router;
