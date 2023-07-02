@@ -90,7 +90,7 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 		user: userId,
 		amount,
 		description: 'Moved money to wallet',
-		transactionType: 'Moved Money to Wallet',
+		transactionType: 'MovedMoneyToWallet',
 		status: 'Success',
 	});
 

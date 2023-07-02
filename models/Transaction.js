@@ -18,7 +18,7 @@ const TransactionSchema = new mongoose.Schema({
 	},
 	transactionType: {
 		type: [String],
-		enum: ['Debit', 'Credit', 'Moved Money to Wallet'],
+		enum: ['Debit', 'Credit', 'MovedMoneyToWallet'],
 	},
 	transactionMethod: {
 		type: [String],
