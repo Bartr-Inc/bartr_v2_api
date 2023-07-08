@@ -28,7 +28,7 @@ router
 	.post(protect, authorize('User', 'Admin'), initiateTransfer);
 router
 	.route('/verifytransfer/:transactionId')
-	.post(protect, authorize('User', 'Admin'), verifyTransfer);
+	.get(protect, authorize('User', 'Admin'), verifyTransfer);
 router
 	.route('/send_funds')
 	.post(protect, authorize('User', 'Admin'), sendFunds);

@@ -447,7 +447,7 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 /** Transfer/Send funds */
 exports.sendFunds = asyncHandler(async (req, res, next) => {
 	try {
-		const { bankCode, accountNumber, amount, description } = req.body;
+		const { bankCode, accountNumber, amount, description, circleId } = req.body;
 		if (!bankCode || bankCode === "") {
 			return res.status(400).json({
 				success: false,
@@ -472,8 +472,10 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 		const serviceFee = 0.03 * numberAmount;
 		const totalAmount = numberAmount + serviceFee
 		// get user wallet balance
-		const userWallet = await Wallet.findOne({ user: req.user._id })
-		if (userWallet.amount < totalAmount) {
+		const circleData = await Circle.findOne({
+			_id: circleId,
+		});
+		if (circleData.amount < totalAmount) {
 			return res.status(400).json({
 				success: false,
 				error: "Insufficient balance",
@@ -489,10 +491,9 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 			callback_url: `${process.env.CALLBACK_URL}/${req.user._id}`,
 			debit_currency: "NGN",
 		};
-
 		const response = await transferFunds(payload);
-		userWallet.amount = userWallet.amount - totalAmount;
-		userWallet.save();
+		circleData.amount = circleData.amount - totalAmount;
+		circleData.save();
 
 		return res.status(200).json({
 			success: true,
