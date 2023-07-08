@@ -35,6 +35,9 @@ const TransferSchema = new mongoose.Schema({
   reference: {
     type: String,
   },
+  transactionId: {
+    type: String,
+  },
   integration: {
     type: String,
   },
