@@ -1,16 +1,19 @@
-const https = require("https");
-const crypto = require("crypto");
-const axios = require("axios");
-const paystack = require("paystack")(process.env.SECRET_KEY);
+const https = require('https');
+const crypto = require('crypto');
+const axios = require('axios');
+const paystack = require('paystack')(process.env.SECRET_KEY);
 
-const ErrorResponse = require("../utils/errorResponse");
-const asyncHandler = require("../middleware/async");
-const Transfer = require("../models/Transfer");
-const Wallet = require("../models/Wallet");
-const User = require("../models/User");
-const Circle = require("../models/Circle");
-const Transaction = require("../models/Transaction");
-const { verifyTransaction } = require("../utils/payments/Flutterwave");
+const ErrorResponse = require('../utils/errorResponse');
+const asyncHandler = require('../middleware/async');
+const Transfer = require('../models/Transfer');
+const Wallet = require('../models/Wallet');
+const User = require('../models/User');
+const Circle = require('../models/Circle');
+const Transaction = require('../models/Transaction');
+const {
+	verifyTransaction,
+	transferFunds,
+} = require('../utils/payments/Flutterwave');
 
 // @desc    Move money from user circle to user wallet
 // @route   PUT /api/v2/transfer/movemoneytowallet/:circleId
@@ -21,7 +24,7 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 	const circleId = req.params.circleId;
 	const userId = req.user.id;
 
-	if (circleId == "" || undefined) {
+	if (circleId == '' || undefined) {
 		return next(new ErrorResponse(`Please enter a Circle Id`, 400));
 	}
 
@@ -91,9 +94,9 @@ exports.moveMoneyFromCircleToWallet = asyncHandler(async (req, res, next) => {
 	await Transaction.create({
 		user: userId,
 		amount,
-		description: "Moved money to wallet",
-		transactionType: "MovedMoneyToWallet",
-		status: "Success",
+		description: 'Moved money to wallet',
+		transactionType: 'MovedMoneyToWallet',
+		status: 'Success',
 	});
 
 	res.status(200).json({
@@ -115,7 +118,7 @@ exports.getAllBanks = asyncHandler(async (req, res, next) => {
 			`${process.env.FLUTTERWAVE_PAYMENT_HOST}/banks/NG`,
 			{
 				headers: {
-					"Content-Type": "application/json",
+					'Content-Type': 'application/json',
 					Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
 				},
 			}
@@ -150,34 +153,34 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 	const userName = userDetail.fullName;
 
 	const params = JSON.stringify({
-		type: "nuban",
+		type: 'nuban',
 		name: userName,
 		account_number: accountNumber,
 		bank_code: bankCode,
-		currency: "NGN",
+		currency: 'NGN',
 	});
 
 	const options = {
 		hostname: process.env.PAYMENT_HOST,
 		port: 443,
-		path: "/transferrecipient",
-		method: "POST",
+		path: '/transferrecipient',
+		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${process.env.SECRET_KEY}`,
-			"Content-Type": "application/json",
+			'Content-Type': 'application/json',
 		},
 	};
 
 	const transferRecipientReq = https
 		.request(options, (transferRecipientRes) => {
-			let data = "";
+			let data = '';
 
-			transferRecipientRes.on("data", (chunk) => {
+			transferRecipientRes.on('data', (chunk) => {
 				data += chunk;
 			});
 
-			transferRecipientRes.on("end", async () => {
-				let dataRes = "";
+			transferRecipientRes.on('end', async () => {
+				let dataRes = '';
 				dataRes = JSON.parse(data);
 				// res.status(200).json(dataRes);
 
@@ -189,7 +192,7 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 				if (!transferDetails) {
 					let createTransferDetails = await Transfer.create({
 						user: userId,
-						type: "nuban",
+						type: 'nuban',
 						name: userName,
 						recipientAccountNumber: dataRes.data.details.account_number,
 						recipientAccountName: dataRes.data.details.account_name,
@@ -234,7 +237,7 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 				}
 			});
 		})
-		.on("error", (error) => {
+		.on('error', (error) => {
 			res.json(error);
 			return;
 		});
@@ -306,7 +309,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 
 	// Make transfer from circle and wallet
 	const params = JSON.stringify({
-		source: "balance",
+		source: 'balance',
 		amount: amount * 100,
 		reference: referenceId,
 		recipient: transferData.recipientCode,
@@ -316,25 +319,25 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 	const options = {
 		hostname: process.env.PAYMENT_HOST,
 		port: 443,
-		path: "/transfer",
-		method: "POST",
+		path: '/transfer',
+		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${process.env.SECRET_KEY}`,
-			"Content-Type": "application/json",
+			'Content-Type': 'application/json',
 		},
 	};
 
 	// Update the circle amount with the updated amount balance
 	const initiateTransferReq = https
 		.request(options, (initiateTransferRes) => {
-			let data = "";
+			let data = '';
 
-			initiateTransferRes.on("data", (chunk) => {
+			initiateTransferRes.on('data', (chunk) => {
 				data += chunk;
 			});
 
-			initiateTransferRes.on("end", async () => {
-				let dataRes = "";
+			initiateTransferRes.on('end', async () => {
+				let dataRes = '';
 				dataRes = JSON.parse(data);
 
 				// Update the transfer db
@@ -346,7 +349,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 						amount: amount,
 						reason: reason,
 						reference: referenceId,
-						transferStatus: "Init",
+						transferStatus: 'Init',
 					}
 				);
 
@@ -375,9 +378,9 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 						circle: circleRes.id,
 						amount,
 						description: reason,
-						transactionType: "Debit",
-						status: "Pending",
-						transactionMethod: "Circle",
+						transactionType: 'Debit',
+						status: 'Pending',
+						transactionMethod: 'Circle',
 						referenceId,
 					}
 				);
@@ -393,7 +396,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 				// });
 			});
 		})
-		.on("error", (error) => {
+		.on('error', (error) => {
 			res.json(error);
 			return;
 		});
@@ -408,38 +411,38 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 	const { transactionId } = req.params;
 
-	if (!transactionId || transactionId === "") {
+	if (!transactionId || transactionId === '') {
 		return res.status(400).json({
 			success: false,
-			error: "Invalid transaction Id",
+			error: 'Invalid transaction Id',
 		});
 	}
 
-	const transferData = await Transfer.findOne({
-		transactionId,
-	});
+	// const transferData = await Transfer.findOne({
+	// 	transactionId,
+	// });
 
-	if (!transferData) {
-		return next(
-			new ErrorResponse(
-				`No transfer details with recipient code of ${transactionId}`
-			),
-			404
-		);
-	}
+	// if (!transferData) {
+	// 	return next(
+	// 		new ErrorResponse(
+	// 			`No transfer details with recipient code of ${transactionId}`
+	// 		),
+	// 		404
+	// 	);
+	// }
 
 	try {
 		const response = await verifyTransaction(transactionId);
-		if (response.data.status === "success") {
+		if (response.data.status === 'success') {
 			return res.status(200).json({
 				success: true,
-				message: "Transaction verified",
+				message: 'Transaction verified',
 			});
 		}
 	} catch (error) {
 		return res.status(500).json({
 			success: false,
-			error: `An Error Occured: ${error.response.data.message}`
+			error: `An Error Occured: ${error.response.data.message}`,
 		});
 	}
 });
@@ -448,29 +451,29 @@ exports.verifyTransfer = asyncHandler(async (req, res, next) => {
 exports.sendFunds = asyncHandler(async (req, res, next) => {
 	try {
 		const { bankCode, accountNumber, amount, description, circleId } = req.body;
-		if (!bankCode || bankCode === "") {
+		if (!bankCode || bankCode === '') {
 			return res.status(400).json({
 				success: false,
-				error: "Please select a bank",
+				error: 'Please select a bank',
 			});
 		}
-		if (!accountNumber || accountNumber === "") {
+		if (!accountNumber || accountNumber === '') {
 			return res.status(400).json({
 				success: false,
-				error: "Please enter account numnber",
+				error: 'Please enter account numnber',
 			});
 		}
-		if (!amount || amount === "") {
+		if (!amount || amount === '') {
 			return res.status(400).json({
 				success: false,
-				error: "Please enter amount to send",
+				error: 'Please enter amount to send',
 			});
 		}
 
-		const ref = crypto.randomBytes(20).toString("base64").slice(0, 20);
+		const ref = crypto.randomBytes(20).toString('base64').slice(0, 20);
 		const numberAmount = Number(amount);
 		const serviceFee = 0.03 * numberAmount;
-		const totalAmount = numberAmount + serviceFee
+		const totalAmount = numberAmount + serviceFee;
 		// get user wallet balance
 		const circleData = await Circle.findOne({
 			_id: circleId,
@@ -478,18 +481,18 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 		if (circleData.amount < totalAmount) {
 			return res.status(400).json({
 				success: false,
-				error: "Insufficient balance",
+				error: 'Insufficient balance',
 			});
 		}
 		const payload = {
 			account_bank: bankCode,
 			account_number: accountNumber,
 			amount: numberAmount,
-			narration: description || "",
-			currency: "NGN",
+			narration: description || '',
+			currency: 'NGN',
 			reference: ref,
 			callback_url: `${process.env.CALLBACK_URL}/${req.user._id}`,
-			debit_currency: "NGN",
+			debit_currency: 'NGN',
 		};
 		const response = await transferFunds(payload);
 		circleData.amount = circleData.amount - totalAmount;
@@ -498,13 +501,13 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 		return res.status(200).json({
 			success: true,
 			message: response.message,
-			data: response.data
+			data: response.data,
 		});
 	} catch (error) {
 		return res.status(500).json({
 			success: false,
-			error: `An Error Occured: ${error.response.data.message}`
-		})
+			error: `An Error Occured: ${error.response.data.message}`,
+		});
 	}
 });
 
@@ -514,10 +517,10 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 exports.transferWebhook = asyncHandler(async (req, res, next) => {
 	//validate event
 	const hash = crypto
-		.createHmac("sha512", process.env.SECRET_KEY)
+		.createHmac('sha512', process.env.SECRET_KEY)
 		.update(JSON.stringify(req.body))
-		.digest("hex");
-	if (hash == req.headers["x-paystack-signature"]) {
+		.digest('hex');
+	if (hash == req.headers['x-paystack-signature']) {
 		// Retrieve the request's body
 		const event = req.body;
 		console.log(event);
@@ -538,7 +541,7 @@ exports.lookup = asyncHandler(async (req, res, next) => {
 		if (!bankCode || !accountNumber) {
 			return res.status(400).json({
 				success: false,
-				error: "Please enter account number and a bank",
+				error: 'Please enter account number and a bank',
 			});
 		}
 		const payload = {
@@ -551,7 +554,7 @@ exports.lookup = asyncHandler(async (req, res, next) => {
 			payload,
 			{
 				headers: {
-					"Content-Type": "application/json",
+					'Content-Type': 'application/json',
 					Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
 				},
 			}
