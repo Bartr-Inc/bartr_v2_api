@@ -6,6 +6,8 @@ const {
 	initiateTransfer,
 	verifyTransfer,
 	transferWebhook,
+	lookup,
+	sendFunds
 } = require('../controllers/transfers');
 
 const router = express.Router();
@@ -25,10 +27,16 @@ router
 	.route('/initiatetransfer/:recipientCode')
 	.post(protect, authorize('User', 'Admin'), initiateTransfer);
 router
-	.route('/verifytransfer/:recipientCode')
+	.route('/verifytransfer/:transactionId')
 	.post(protect, authorize('User', 'Admin'), verifyTransfer);
+router
+	.route('/send_funds')
+	.post(protect, authorize('User', 'Admin'), sendFunds);
 router
 	.route('/transferwebhook')
 	.post(protect, authorize('User', 'Admin'), transferWebhook);
+router
+	.route('/lookup')
+	.post(protect, authorize('User', 'Admin'), lookup);
 
 module.exports = router;

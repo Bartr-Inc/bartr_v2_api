@@ -59,3 +59,4 @@ exports.getWallet = asyncHandler(async (req, res, next) => {
 		data: wallet,
 	});
 });
+
