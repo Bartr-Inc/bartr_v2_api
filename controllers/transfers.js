@@ -249,60 +249,74 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 	const { amount } = req.body;
 
-	if (!amount) {
-		return res.status(400).json({
-			success: false,
-			error: "Please enter an amount",
-		});
-	}
-
-	if (Number(amount) < 1000) {
-		return res.status(400).json({
-			success: false,
-			error: "Please enter a minimum of N1,000",
-		});
-	}
-
-	// get user wallet
-	const walletData = await Wallet.findOne({
-		user: req.user.id,
-	});
-
-	if (!walletData) {
-		return res.status(404).json({
-			success: false,
-			error: "User do not have any wallet to fund. Please create one",
-		});
-	}
-
-	const ref = crypto.randomBytes(20).toString("base64").slice(0, 20);
-	const numberAmount = Number(amount);
-	const serviceFee = 0.03 * numberAmount;
-	const totalAmount = numberAmount + serviceFee
-
-	const payload = {
-		tx_ref: ref,
-		amount: `${totalAmount}`,
-		currency: "NGN",
-		// redirect_url: "https://webhook.site/9d0b00ba-9a69-44fa-a43d-a82c33c36fdc",
-		customer: {
-			email: req.user.email,
-			phonenumber: req.user.phone,
-			name: req.user.fullName
-		},
-		customizations: {
-			title: "Bartr Pay Wallet Topup",
-			logo: "https://res.cloudinary.com/listerbox/image/upload/v1626157380/listerbox_logo2_-_Copy_vzj2p8.png"
+	try {
+		if (!amount) {
+			return res.status(400).json({
+				success: false,
+				error: "Please enter an amount",
+			});
 		}
+
+		if (Number(amount) < 1000) {
+			return res.status(400).json({
+				success: false,
+				error: "Please enter a minimum of N1,000",
+			});
+		}
+
+		// get user wallet
+		const walletData = await Wallet.findOne({
+			user: req.user.id,
+		});
+
+		if (!walletData) {
+			return res.status(404).json({
+				success: false,
+				error: "User do not have any wallet to fund. Please create one",
+			});
+		}
+
+		const ref = crypto.randomBytes(20).toString("base64").slice(0, 20);
+		const numberAmount = Number(amount);
+		const serviceFee = 0.03 * numberAmount;
+		const totalAmount = numberAmount + serviceFee
+
+		const payload = {
+			tx_ref: ref,
+			amount: `${totalAmount}`,
+			currency: "NGN",
+			redirect_url: "https://webhook.site/d22a91a9-1b0a-4b3e-9b15-639beb08014c",
+			customer: {
+				email: req.user.email,
+				phonenumber: req.user.phone,
+				name: req.user.fullName
+			},
+			customizations: {
+				title: "Bartr Pay Wallet Topup",
+				logo: "https://res.cloudinary.com/listerbox/image/upload/v1626157380/listerbox_logo2_-_Copy_vzj2p8.png"
+			}
+		}
+
+		const response = await initializeTransaction(payload);
+
+		return res.status(200).json({
+			success: true,
+			message: response.message,
+			data: response.data
+		});
+	} catch (error) {
+		console.log(error.response.data);
+		return res.status(500).json({
+			success: false,
+			error: error.response.data.message,
+		});
 	}
 
-	const response = await initializeTransaction(payload);
 
-	return res.status(200).json({
-		success: true,
-		message: response.message,
-		data: response.data
-	});
+
+
+
+
 
 });
 
@@ -424,7 +438,9 @@ exports.transferWebhook = asyncHandler(async (req, res, next) => {
 		});
 	}
 	const payload = req.body;
+
 	console.log('Flw:::', payload);
+
 	return res.status(200).json({
 		success: true,
 		message: "Verified"
