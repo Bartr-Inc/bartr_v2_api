@@ -255,6 +255,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 			error: "Please enter an amount",
 		});
 	}
+
 	if (Number(amount) < 1000) {
 		return res.status(400).json({
 			success: false,
@@ -283,7 +284,7 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 		tx_ref: ref,
 		amount: `${totalAmount}`,
 		currency: "NGN",
-		redirect_url: "https://webhook.site/9d0b00ba-9a69-44fa-a43d-a82c33c36fdc",
+		// redirect_url: "https://webhook.site/9d0b00ba-9a69-44fa-a43d-a82c33c36fdc",
 		customer: {
 			email: req.user.email,
 			phonenumber: req.user.phone,
@@ -413,20 +414,20 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v2/transfers/webhook
 // @access  Private
 exports.transferWebhook = asyncHandler(async (req, res, next) => {
-	//validate event
-	const hash = crypto
-		.createHmac('sha512', process.env.SECRET_KEY)
-		.update(JSON.stringify(req.body))
-		.digest('hex');
-	if (hash == req.headers['x-paystack-signature']) {
-		// Retrieve the request's body
-		const event = req.body;
-		console.log(event);
-		// Do something with event
+	const secretHash = process.env.FLW_SECRET_HASH;
+	const signature = req.headers["verif-hash"];
+	if (!signature || (signature !== secretHash)) {
+		// This request isn't from Flutterwave; discard
+		return res.status(401).json({
+			success: false,
+			error: 'Unauthorized',
+		});
 	}
-
-	res.status(200).json({
+	const payload = req.body;
+	console.log('Flw:::', payload);
+	return res.status(200).json({
 		success: true,
+		message: "Verified"
 	});
 });
 

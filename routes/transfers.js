@@ -34,7 +34,7 @@ router
 	.post(protect, authorize('User', 'Admin'), sendFunds);
 router
 	.route('/transferwebhook')
-	.post(protect, authorize('User', 'Admin'), transferWebhook);
+	.get(transferWebhook);
 router
 	.route('/lookup')
 	.post(protect, authorize('User', 'Admin'), lookup);
