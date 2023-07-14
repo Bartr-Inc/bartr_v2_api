@@ -1,6 +1,7 @@
 const https = require('https');
 const crypto = require('crypto');
 const axios = require('axios');
+const winston = require('winston');
 const paystack = require('paystack')(process.env.SECRET_KEY);
 
 const ErrorResponse = require("../utils/errorResponse");
@@ -11,6 +12,16 @@ const User = require("../models/User");
 const Circle = require("../models/Circle");
 const Transaction = require("../models/Transaction");
 const { verifyTransaction, transferFunds, initializeTransaction } = require("../utils/payments/Flutterwave");
+
+// Create a logger instance
+const logger = winston.createLogger({
+	level: 'info', // Set the minimum level for logs
+	format: winston.format.simple(), // Use a simple log format
+	transports: [
+		new winston.transports.Console(), // Log to the console
+		new winston.transports.File({ filename: 'server.log' }) // Log to a file
+	],
+});
 
 // @desc    Move money from user circle to user wallet
 // @route   PUT /api/v2/transfer/movemoneytowallet/:circleId
@@ -299,6 +310,9 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 
 		const response = await initializeTransaction(payload);
 
+		console.log('initialized:::', response.data);
+		logger.info('Initialized Logs:::', response.data);
+
 		return res.status(200).json({
 			success: true,
 			message: response.message,
@@ -306,18 +320,12 @@ exports.initiateTransfer = asyncHandler(async (req, res, next) => {
 		});
 	} catch (error) {
 		console.log(error.response.data);
+		logger.info('Initialized Error:::', error.response.data);
 		return res.status(500).json({
 			success: false,
 			error: error.response.data.message,
 		});
 	}
-
-
-
-
-
-
-
 });
 
 //  @desc    Verify transfer
@@ -440,6 +448,7 @@ exports.transferWebhook = asyncHandler(async (req, res, next) => {
 	const payload = req.body;
 
 	console.log('Flw:::', payload);
+	logger.info('Webhook:::', payload);
 
 	return res.status(200).json({
 		success: true,
