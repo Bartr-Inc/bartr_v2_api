@@ -24,7 +24,7 @@ router
 	.route('/movemoneytowallet/:circleId')
 	.put(protect, authorize('User', 'Admin'), moveMoneyFromCircleToWallet);
 router
-	.route('/initiatetransfer/:recipientCode')
+	.route('/initiatetransfer')
 	.post(protect, authorize('User', 'Admin'), initiateTransfer);
 router
 	.route('/verifytransfer/:transactionId')
