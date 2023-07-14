@@ -10,7 +10,7 @@ const Wallet = require("../models/Wallet");
 const User = require("../models/User");
 const Circle = require("../models/Circle");
 const Transaction = require("../models/Transaction");
-const { verifyTransaction } = require("../utils/payments/Flutterwave");
+const { verifyTransaction, transferFunds, initializeTransaction } = require("../utils/payments/Flutterwave");
 
 // @desc    Move money from user circle to user wallet
 // @route   PUT /api/v2/transfer/movemoneytowallet/:circleId
@@ -244,162 +244,66 @@ exports.createTransferRecipient = asyncHandler(async (req, res, next) => {
 });
 
 //  @desc    Initiate a transfer
-//  @route   POST /api/v2/transfers/initiatetransfer/:recipientCode
+//  @route   POST /api/v2/transfers/initiatetransfer
 // @access  Private
 exports.initiateTransfer = asyncHandler(async (req, res, next) => {
-	const { amount, reason } = req.body;
-	const recipientCode = req.params.recipientCode;
-	const userId = req.user.id;
+	const { amount } = req.body;
 
-	const referenceId =
-		Math.random().toString(36).substring(2, 15) +
-		Math.random().toString(36).substring(2, 15);
+	if (!amount) {
+		return res.status(400).json({
+			success: false,
+			error: "Please enter an amount",
+		});
+	}
+	if (Number(amount) < 1000) {
+		return res.status(400).json({
+			success: false,
+			error: "Please enter a minimum of N1,000",
+		});
+	}
 
-	// Check if the amount in the wallet/circle is equal to the amount to be transfered
-	const transferData = await Transfer.findOne({
-		recipientCode,
-	});
-
+	// get user wallet
 	const walletData = await Wallet.findOne({
-		user: userId,
+		user: req.user.id,
 	});
-
-	const circleData = await Circle.findOne({
-		recipientCode,
-	});
-
-	if (!circleData) {
-		return next(
-			new ErrorResponse(
-				`No circle details with recipient code of ${recipientCode}`
-			),
-			404
-		);
-	}
-
-	if (!transferData) {
-		return next(
-			new ErrorResponse(
-				`No transfer details with recipient code of ${recipientCode}`
-			),
-			404
-		);
-	}
 
 	if (!walletData) {
-		return next(
-			new ErrorResponse(
-				`No wallet details with user id of ${req.params.recipientCode}`
-			),
-			404
-		);
+		return res.status(404).json({
+			success: false,
+			error: "User do not have any wallet to fund. Please create one",
+		});
 	}
 
-	if (transferData.amount > circleData.amount) {
-		return next(
-			new ErrorResponse(
-				`Amount to be transferred is greater than amount in ${circleData.name} circle`,
-				401
-			)
-		);
+	const ref = crypto.randomBytes(20).toString("base64").slice(0, 20);
+	const numberAmount = Number(amount);
+	const serviceFee = 0.03 * numberAmount;
+	const totalAmount = numberAmount + serviceFee
+
+	const payload = {
+		tx_ref: ref,
+		amount: `${totalAmount}`,
+		currency: "NGN",
+		redirect_url: "https://webhook.site/9d0b00ba-9a69-44fa-a43d-a82c33c36fdc",
+		customer: {
+			email: req.user.email,
+			phonenumber: req.user.phone,
+			name: req.user.fullName
+		},
+		customizations: {
+			title: "Bartr Pay Wallet Topup",
+			logo: "https://res.cloudinary.com/listerbox/image/upload/v1626157380/listerbox_logo2_-_Copy_vzj2p8.png"
+		}
 	}
 
-	// Make transfer from circle and wallet
-	const params = JSON.stringify({
-		source: "balance",
-		amount: amount * 100,
-		reference: referenceId,
-		recipient: transferData.recipientCode,
-		reason: reason,
+	const response = await initializeTransaction(payload);
+	console.log(response.data);
+
+	return res.status(200).json({
+		success: true,
+		message: response.message,
+		data: response.data
 	});
 
-	const options = {
-		hostname: process.env.PAYMENT_HOST,
-		port: 443,
-		path: "/transfer",
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${process.env.SECRET_KEY}`,
-			"Content-Type": "application/json",
-		},
-	};
-
-	// Update the circle amount with the updated amount balance
-	const initiateTransferReq = https
-		.request(options, (initiateTransferRes) => {
-			let data = "";
-
-			initiateTransferRes.on("data", (chunk) => {
-				data += chunk;
-			});
-
-			initiateTransferRes.on("end", async () => {
-				let dataRes = "";
-				dataRes = JSON.parse(data);
-
-				// Update the transfer db
-				await Transfer.findOneAndUpdate(
-					{
-						recipientCode: transferData.recipientCode,
-					},
-					{
-						amount: amount,
-						reason: reason,
-						reference: referenceId,
-						transferStatus: "Init",
-					}
-				);
-
-				// Update the circle db when transfer is successful
-				const circleRes = await Circle.findOneAndUpdate(
-					{
-						recipientCode: transferData.recipientCode,
-					},
-					{
-						// amount: circleData.amount - amount,
-						balanceAmount: circleData.amount - amount,
-					},
-					{
-						new: true,
-						runValidators: true,
-					}
-				);
-
-				// Update transactions db
-				await Transaction.findOneAndUpdate(
-					{
-						recipientCode: transferData.recipientCode,
-					},
-					{
-						user: userId,
-						circle: circleRes.id,
-						amount,
-						description: reason,
-						transactionType: "Debit",
-						status: "Pending",
-						transactionMethod: "Circle",
-						referenceId,
-					}
-				);
-
-				res.status(200).json(dataRes);
-
-				// res.status(200).json({
-				// 	status: 'success',
-				// 	message: 'Transfer initiated successfully',
-				// 	data: {
-				// 		dataRes,
-				// 	},
-				// });
-			});
-		})
-		.on("error", (error) => {
-			res.json(error);
-			return;
-		});
-
-	initiateTransferReq.write(params);
-	initiateTransferReq.end();
 });
 
 //  @desc    Verify transfer
@@ -469,13 +373,12 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 
 		const ref = crypto.randomBytes(20).toString("base64").slice(0, 20);
 		const numberAmount = Number(amount);
-		const serviceFee = 0.03 * numberAmount;
-		const totalAmount = numberAmount + serviceFee
+
 		// get user wallet balance
 		const circleData = await Circle.findOne({
 			_id: circleId,
 		});
-		if (circleData.amount < totalAmount) {
+		if (circleData.amount < numberAmount) {
 			return res.status(400).json({
 				success: false,
 				error: "Insufficient balance",
@@ -492,7 +395,7 @@ exports.sendFunds = asyncHandler(async (req, res, next) => {
 			debit_currency: "NGN",
 		};
 		const response = await transferFunds(payload);
-		circleData.amount = circleData.amount - totalAmount;
+		circleData.amount = circleData.amount - numberAmount;
 		circleData.save();
 
 		return res.status(200).json({
